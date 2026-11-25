@@ -2,7 +2,9 @@
 
 *Linux Fundamentals: Starting with NixOS*
 
-一本写给完全初学者的 Linux 教材：以 NixOS 作为第一台 Linux，讲命令行、Unix 文化、系统配置、日常开发与服务器运维，最后讲怎么安全地使用 AI Agent。
+一本写给完全初学者的 Linux 教材：以 NixOS 作为第一台 Linux，讲命令行、Unix 传统、系统配置、日常开发与服务器运维，最后讲怎么安全地使用 AI Agent。
+
+全书 35 章，分五部分：起步、系统、开发、运维、Agent。
 
 ## 目标读者
 
@@ -14,55 +16,58 @@
 - 部署并维护一台 Linux 服务器；
 - 安装、配置并约束一个 AI Agent。
 
+## 四种版式
+
+同一份源文件编译出四种版式，内容一致，纸张、字号、页边距与配色不同。
+
+| 版式 | 纸张与字号 | 用途 | 特点 |
+|---|---|---|---|
+| `screen` | A4，11pt | 电脑屏幕阅读 | 默认版式，彩色插图 |
+| `print` | A4，11pt | 印刷装订 | 内侧加宽装订线，双面排版 |
+| `ereader` | 91 × 122 mm，9pt | 6 寸电子墨水阅读器 | 灰度配色，窄边距 |
+| `phone` | 88 × 176 mm，9pt | 手机竖屏 | 灰度配色，页面更高 |
+
+窄版式下若干宽幅示意图会换成等价的表格，避免缩到不可读；时间线一节即为一例。
+
 ## 构建
 
 ```sh
-./build.sh              # 构建全部版式
-./build.sh ereader      # 只构建一种
-./build.sh clean        # 清理
+./build.sh            # 四种版式全部构建
+./build.sh ereader    # 只构建一种：screen | print | ereader | phone
+./build.sh clean      # 清理产物
 ```
 
-全书排四种版式，正文相同，纸张、字号、页边距与配色不同：
+依赖由 Nix 提供：XeLaTeX（TeX Live 2025，含 `ctex`、`minted`、`tcolorbox`、
+`xltabular`、`adjustbox`、`float`）、`poppler-utils`、思源宋体、Sarasa、Recursive。
 
-| 版式 | 纸张 | 用途 |
-|---|---|---|
-| `screen` | A4，11pt | 屏幕阅读，彩色 |
-| `print` | A4，11pt，内侧加宽装订线 | 双面印刷，页边距内外不对称 |
-| `ereader` | 91mm × 122mm，10pt | 6 寸电子书阅读器，灰度 |
-| `phone` | 88mm × 176mm，10pt | 手机竖屏，灰度 |
-
-依赖：XeLaTeX（TeX Live 2025 或更新，需 `ctex`、`minted`、`tcolorbox`、`titlesec`、
-`xltabular`、`adjustbox`、`float`）、`latexminted` 或 `pygmentize`、`nix`（用来定位中文字体）。
-
-在 NixOS 上：
-
-```sh
-nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#source-han-serif \
-          nixpkgs#sarasa-gothic nixpkgs#recursive --command ./build.sh
-```
-
-`build.sh` 把 nixpkgs 里三个字体包的路径写进 `build/fonts.tex`，排版时按
-`Path` + `FontIndex` 从字体集合里取字面；没有 nix 时会退回按字族名查找。
-字体文件不入库，细节见 `docs/fonts.md`。
+首次运行 `build.sh` 会执行一次 `nix build` 解析工具与字体路径，写入 `build/env.sh`
+与 `build/fonts.tex`，之后复用。命令行二进制来自 Nix store，因此系统级不必安装 TeX。
 
 产物：`build/<版式>/main-<版式>.pdf`。
 
 ## 目录结构
 
 ```
-main.tex                 主文件
-tex/                     版式参数（layout.tex）、封面、元信息
-variants/                四种版式的入口包装，由 build.sh 调用
+main.tex                 主文件（章节顺序、分部）
+tex/
+  meta.tex               书名、作者、版本
+  layout.tex             版式参数（screen / print / ereader / phone）
+  preamble.tex           页面、字体、颜色、标题、代码、提示框
+  cover.tex              封面
+variants/                四种版式的包装文件，只负责 \def\booklayout{...}
 frontmatter/             前言、阅读指南
 chapters/                正文，一章一个文件
-tools/                   构建辅助脚本（字体抽取）
-docs/                    结构计划、字体与许可说明
+docs/
+  outline.md             章节计划与已核实的版本事实
+  style.md               文风规范
+  fonts.md               字体与许可说明
 build/                   编译产物（不入库）
 ```
 
 ## 许可
 
 - 正文与插图：CC BY-SA 4.0，全文见 `LICENSE`
-- 代码示例与 `tools/`：MIT，全文见 `LICENSE-CODE`
+- 代码示例与 `build.sh`：MIT，全文见 `LICENSE-CODE`
 
-字体许可见 `docs/fonts.md`。
+字体许可见 `docs/fonts.md`：思源宋体、Sarasa、Recursive 均为 SIL OFL 1.1，
+TeX Gyre Pagella 为 GUST Font License，四者都允许商用与嵌入。

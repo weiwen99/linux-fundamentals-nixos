@@ -32,7 +32,9 @@
   \bkgrayscaletrue
 \fi
 
-% 字号：窄版式用小一号，避免每行字数过少
+% 字号：标准文档类只接受 10/11/12pt，窄版式先用 10pt 建类，
+% 再由 preamble 里的 \AtBeginDocument 把正文缩到 9pt
+% （6 寸屏上 10pt 相当于 A4 的 14pt，偏大）。
 \ifbknarrow
   \def\bkfontsize{10pt}
 \else

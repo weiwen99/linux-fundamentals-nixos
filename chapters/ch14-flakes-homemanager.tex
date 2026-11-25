@@ -137,7 +137,7 @@ $ ls -l ~/.bashrc
   \item 在 \texttt{home.nix} 中设置三个 shell 别名，切换后用 \texttt{alias} 确认生效。
   \item 修改 \texttt{\textasciitilde/.bashrc}，再执行一次切换，观察改动是否被覆盖。
   \item 用 \texttt{nix flake update} 升级一次，用 \texttt{git diff flake.lock} 查看变化，再回滚提交。
-  \item 把 \texttt{home.packages} 与 \texttt{environment.systemPackages} 各放一个包，说明两者在 \texttt{which} 输出中的差别。
+  \item 把 \texttt{home.packages} 与 \texttt{environment.\allowbreak systemPackages} 各放一个包，说明两者在 \texttt{which} 输出中的差别。
 \end{enumerate}
 
 \begin{checkpoint}

@@ -45,7 +45,7 @@ derivation & 一份构建配方：输入、脚本、输出路径 \\
   \draw[-{Latex[length=1.5mm]}, teal, thick] (expr) -- (drv);
   \draw[-{Latex[length=1.5mm]}, teal, thick] (drv) -- (store);
   \draw[-{Latex[length=1.5mm]}, teal, thick] (store) -- (gen);
-  \node[lab, below=1mm of expr] {你写的};
+  \node[lab, below=1mm of expr] {用户所写};
   \node[lab, below=1mm of drv] {Nix 算出};
   \node[lab, below=1mm of store] {落盘};
   \node[lab, below=1mm of gen] {可切换};

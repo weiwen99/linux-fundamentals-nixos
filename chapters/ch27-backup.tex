@@ -95,7 +95,7 @@ services.postgresqlBackup = {
 };
 \end{nixcode}
 
-导出的文件放在 \texttt{/var/backup/postgresql}，随后由 restic 一并备份。恢复时先建库，再用 \texttt{psql} 导入。
+导出的文件放在 \texttt{/var/backup/\allowbreak postgresql}，随后由 restic 一并备份。恢复时先建库，再用 \texttt{psql} 导入。
 
 \section{练习}
 
@@ -103,7 +103,7 @@ services.postgresqlBackup = {
   \item 初始化一个 restic 仓库，备份家目录，用 \texttt{snapshots} 确认。
   \item 删除一个文件，用 \texttt{restic mount} 找到它并恢复，记录耗时。
   \item 配置每日自动备份与保留策略，重建后用 \texttt{systemctl list-timers} 确认。
-  \item 运行 \texttt{restic check -{}-read-data-subset=5\%}，记录输出与耗时。
+  \item 运行 \texttt{restic check\allowbreak\ -{}-read-data-subset=5\%}，记录输出与耗时。
   \item 写一份恢复步骤清单，要求他人照做能在三十分钟内恢复一份文件。
 \end{enumerate}
 

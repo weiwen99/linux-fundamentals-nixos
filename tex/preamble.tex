@@ -127,6 +127,15 @@
 \fi
 \setlength{\parskip}{0pt}
 \setlength{\emergencystretch}{3em}
+% 窄版式的行宽小，微小的溢出（<2pt）不可见；放宽 hfuzz 减少无意义的告警，
+% 真正的溢出仍会报告。
+\ifbknarrow
+  \setlength{\hfuzz}{2pt}
+  \linespread{1.28}
+  % 正文 9pt：行距 1.28 倍后约 11.5pt，接近 6 寸屏的舒适密度。
+  \AtBeginDocument{\fontsize{9pt}{11.5pt}\selectfont}
+  \renewcommand{\texttt}[1]{{\footnotesize\ttfamily #1}}
+\fi
 \raggedbottom
 \clubpenalty=10000
 \widowpenalty=10000

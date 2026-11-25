@@ -70,7 +70,7 @@ $ rg -n "hostName" /etc/nixos
 \toprule
 任务 & grep & rg \\
 \midrule
-递归搜索 & \texttt{grep -rn 模式 路径} & \texttt{rg -n 模式 路径} \\
+递归搜索 & \texttt{grep -rn\ 模式\ 路径} & \texttt{rg -n 模式 路径} \\
 只列文件名 & \texttt{grep -rl 模式} & \texttt{rg -l 模式} \\
 查找文件类型 & 需配合 \texttt{find} & \texttt{rg -t py 模式} \\
 排除目录 & \texttt{-{}-exclude-dir=} & 默认读 \texttt{.gitignore} \\

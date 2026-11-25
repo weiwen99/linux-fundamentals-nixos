@@ -49,9 +49,20 @@ export PATH="$TEXBIN:$POPPLERBIN:$PATH"
 
 build_one() {
   local v=$1
+  local pdf="build/$v/main-$v.pdf"
   echo "==> 构建版式 $v"
-  BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null
-  echo "    build/$v/main-$v.pdf"
+  # 首轮常因缺少 .toc/.out 而以非零码结束，判据是 PDF 是否生成；
+  # 未生成时再跑一轮，让交叉引用稳定。
+  BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
+  if [[ ! -f $pdf ]]; then
+    BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
+  fi
+  if [[ -f $pdf ]]; then
+    echo "    $pdf ($(pdfinfo "$pdf" | awk '/Pages/{print $2}') 页)"
+  else
+    echo "    构建失败：未生成 $pdf" >&2
+    return 1
+  fi
 }
 
 case "${1:-all}" in
