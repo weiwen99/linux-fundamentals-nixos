@@ -20,18 +20,21 @@ write_font_paths() {
   fi
 
   echo "==> 解析字体路径"
-  local shs sarasa
+  local shs sarasa recursive
   shs=$(nix build --no-link --print-out-paths nixpkgs#source-han-serif)/share/fonts/truetype/
   sarasa=$(nix build --no-link --print-out-paths nixpkgs#sarasa-gothic)/share/fonts/truetype/
+  recursive=$(nix build --no-link --print-out-paths nixpkgs#recursive)/share/fonts/opentype/
 
   mkdir -p build
   cat > build/fonts.tex <<FONTS
 % 由 build.sh 生成，勿手改。
 \\newcommand{\\shsdir}{$shs}
 \\newcommand{\\sarasadir}{$sarasa}
+\\newcommand{\\recursivedir}{$recursive}
 FONTS
   echo "    思源宋体：$shs"
   echo "    Sarasa：  $sarasa"
+  echo "    Recursive：$recursive"
 }
 
 write_font_paths

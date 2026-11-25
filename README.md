@@ -27,10 +27,10 @@
 
 ```sh
 nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#source-han-serif \
-          nixpkgs#sarasa-gothic --command ./build.sh
+          nixpkgs#sarasa-gothic nixpkgs#recursive --command ./build.sh
 ```
 
-`build.sh` 把 nixpkgs 里两个字体包的路径写进 `build/fonts.tex`，排版时按
+`build.sh` 把 nixpkgs 里三个字体包的路径写进 `build/fonts.tex`，排版时按
 `Path` + `FontIndex` 从字体集合里取字面；没有 nix 时会退回按字族名查找。
 字体文件不入库，细节见 `docs/fonts.md`。
 
