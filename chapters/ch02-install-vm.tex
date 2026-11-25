@@ -7,9 +7,7 @@
 
 虚拟化软件按宿主系统选择。
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{L{3.2cm} L{3.9cm} X}
+\begin{booktable}{\textwidth}{L{0.980} L{1.194} J{0.827}}
 \toprule
 软件 & 平台 & 说明 \\
 \midrule
@@ -18,8 +16,7 @@ GNOME Boxes & Linux & 多数发行版可直接安装，配置最少 \\
 UTM & Apple Silicon Mac & 免费，支持 aarch64 虚拟机 \\
 VMware Workstation & Windows、Linux & 性能较好，个人使用免费 \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{booktable}
 
 Apple Silicon 的 Mac 需下载 \texttt{aarch64} 镜像，其余平台下载 \texttt{x86\_64} 镜像，安装步骤相同。
 
@@ -79,7 +76,7 @@ $ sudo mkdir -p /mnt/boot
 $ sudo mount /dev/disk/by-label/boot /mnt/boot
 \end{shellsession}
 
-分区只有两个：512\,MB 的 EFI 分区存放引导程序，其余空间全部给根分区。该布局简单，覆盖本书全部实验。需要交换空间、独立 \texttt{/home} 或磁盘加密的情形，在第十七章的基础上调整。
+分区只有两个：512\,MB 的 EFI 分区存放引导程序，其余空间全部给根分区。该布局简单，覆盖本书全部实验。需要交换空间、独立 \texttt{/home} 或磁盘加密的情形，在第十八章的基础上调整。
 
 \texttt{mkfs} 意为“建立文件系统”。刚完成分区的磁盘仅是一段空闲区域，\texttt{mkfs.ext4} 在其上写入目录结构、空闲块表等元数据，操作系统才能存放文件。EFI 分区必须使用 FAT32，这是固件的要求。
 
@@ -91,7 +88,7 @@ writing /mnt/etc/nixos/hardware-configuration.nix...
 writing /mnt/etc/nixos/configuration.nix...
 \end{shellsession}
 
-命令生成两份文件。\texttt{hardware-configuration.nix} 记录磁盘、分区、内核模块与 CPU 特性，不应手改；重装或更换硬件时重新生成。\texttt{configuration.nix} 是需要编辑的文件，初始状态多为注释。
+命令生成两份文件。\texttt{hardware-\allowbreak{}configuration.\allowbreak{}nix} 记录磁盘、分区、内核模块与 CPU 特性，不应手改；重装或更换硬件时重新生成。\texttt{configuration.\allowbreak{}nix} 是需要编辑的文件，初始状态多为注释。
 
 用 nano 打开（首次使用 nano 比 vim 直接：\texttt{Ctrl+O} 保存，\texttt{Ctrl+X} 退出）。
 
@@ -146,10 +143,10 @@ $ sudo nano /mnt/etc/nixos/configuration.nix
   \item \texttt{hostName} 是主机名，显示在提示符中。
   \item \texttt{NetworkManager} 管理网络，虚拟机与笔记本均适用。
   \item \texttt{timeZone} 与 \texttt{defaultLocale} 决定时区与语言。\texttt{zh\_CN.UTF-8} 使系统支持中文显示；终端输出建议保持英文，便于检索报错。
-  \item \texttt{services.openssh} 启用 SSH 服务，第九章使用。
+  \item \texttt{services.\allowbreak{}openssh} 启用 SSH 服务，第九章使用。
   \item \texttt{extraGroups} 中的 \texttt{wheel} 表示该用户可通过 \texttt{sudo} 取得管理员权限。
   \item \texttt{initialPassword} 是首次登录的临时密码，登录后应立即修改。
-  \item \texttt{stateVersion} 标记配置面向的版本，安装后不要修改，原因见第十四章。
+  \item \texttt{stateVersion} 标记配置面向的版本，安装后不要修改，原因见第十五章。
 \end{itemize}
 
 \begin{warnbox}[缩进与分号]
@@ -186,10 +183,10 @@ $ sudo nixos-rebuild switch
 本章的核心练习。目标是建立对回滚机制的直接经验：系统配置可以改坏，也有确定的恢复路径。
 
 \begin{enumerate}
-  \item 将 \texttt{configuration.nix} 中的 \texttt{networking.hostName} 改为 \texttt{broken-host}，执行 \texttt{sudo nixos-rebuild switch}。退出重新登录，提示符中的主机名随之改变。
+  \item 将 \texttt{configuration.\allowbreak{}nix} 中的 \texttt{networking.\allowbreak{}hostName} 改为 \texttt{broken-host}，执行 \texttt{sudo nixos-\allowbreak{}rebuild switch}。退出重新登录，提示符中的主机名随之改变。
   \item 制造一处语法错误，例如删除一个分号，重新构建。记录报错内容，按行号定位问题。
   \item 执行 \texttt{sudo nixos-rebuild switch -{}-rollback} 回到上一代。重新登录，主机名恢复。
-  \item 执行 \texttt{sudo nixos-rebuild list-generations}，统计当前存在几代系统。
+  \item 执行 \texttt{sudo nixos-\allowbreak{}rebuild list-\allowbreak{}generations}，统计当前存在几代系统。
 \end{enumerate}
 
 \begin{checkpoint}
@@ -197,8 +194,8 @@ $ sudo nixos-rebuild switch
 \begin{itemize}
   \item 独立创建 NixOS 虚拟机并完成安装；
   \item 说明 EFI 分区与根分区各自的用途；
-  \item 读懂 \texttt{configuration.nix} 中常用的选项；
-  \item 用 \texttt{nixos-rebuild switch} 应用配置，用 \texttt{-{}-rollback} 撤销；
+  \item 读懂 \texttt{configuration.\allowbreak{}nix} 中常用的选项；
+  \item 用 \texttt{nixos-\allowbreak{}rebuild switch} 应用配置，用 \texttt{-{}-rollback} 撤销；
   \item 在配置出错后按确定步骤恢复到可用状态。
 \end{itemize}
 \end{checkpoint}

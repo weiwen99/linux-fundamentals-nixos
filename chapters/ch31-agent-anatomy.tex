@@ -1,0 +1,120 @@
+\chapter{Agent 的构成}
+\chapterlead{命令行里的“AI 助手”不是聊天窗口，而是一个会调用工具的循环程序。本章拆开这个循环，说明它为什么能改文件、会犯什么错，以及权限为什么必须由外部约束。}
+
+\section{起步：观察一次工具调用}
+
+装一个最小的 Agent 之前，先理解它在做什么。一次典型交互包含五步。
+
+\begin{booktable}{\textwidth}{J{0.667} J{1.333}}
+\toprule
+步骤 & 发生的事 \\
+\midrule
+一 & 用户提出目标，附带当前环境信息 \\
+二 & 模型输出一段“要调用工具”的结构化请求 \\
+三 & 本地程序执行该工具，把结果回填给模型 \\
+四 & 模型据结果决定下一步，或给出结论 \\
+五 & 全部对话与工具输出写入会话文件 \\
+\bottomrule
+\end{booktable}
+
+关键在于第二步与第三步之间：模型本身不能读写文件，它只能输出“请执行这个命令”。真正执行的是本地程序。因此安全边界在程序一侧，不在模型一侧。
+
+\begin{figure}[H]
+\centering
+\figfit{%
+\begin{tikzpicture}[font=\small, node distance=8mm,
+  box/.style={draw=ink!45, fill=ink!5, rounded corners=1pt, inner sep=4pt, align=center, minimum height=9mm},
+  arr/.style={-{Latex[length=1.5mm]}, teal, thick}]
+  \node[box] (user) {目标};
+  \node[box, right=of user] (model) {模型\\[-1pt]{\scriptsize 只输出文本}};
+  \node[box, right=of model] (tools) {工具\\[-1pt]{\scriptsize 读写、执行}};
+  \node[box, below=of tools] (fs) {文件系统与\\进程};
+  \draw[arr] (user) -- (model);
+  \draw[arr] (model) -- node[above, font=\scriptsize] {调用请求} (tools);
+  \draw[arr] (tools) -- (fs);
+  \draw[arr, dashed] (tools.south west) -- node[below, font=\scriptsize] {结果回填} (model.south east);
+\end{tikzpicture}%
+}
+\caption{工具调用循环。虚线是回填路径，它让模型看到执行结果}
+\end{figure}
+
+\section{工具有哪几类}
+
+不同 Agent 的内置工具大同小异，通常有六类。
+
+\begin{booktable}{\textwidth}{J{0.741} J{1.259}}
+\toprule
+类别 & 典型能力 \\
+\midrule
+读 & 查看文件、列目录、搜索内容 \\
+写 & 新建、修改、删除文件 \\
+执行 & 运行命令、跑测试、构建 \\
+检索 & 按正则或语义在网络与本地查找 \\
+任务 & 拆分待办、维护计划 \\
+扩展 & 调用 MCP 服务、加载技能说明 \\
+\bottomrule
+\end{booktable}
+
+执行类工具风险最高：一条命令可能删除文件、重装系统、向外发送数据。写类工具次之：改动可能覆盖未提交的工作。读类工具几乎无害，只是消耗上下文。
+
+\section{上下文与压缩}
+
+模型的输入窗口有限。一次会话里反复读文件、跑命令，很快就会填满。
+
+\begin{shellsession}
+$ wc -l ~/.omp/agent/sessions/*/*.jsonl | tail -1
+$ du -sh ~/.omp/agent/sessions
+\end{shellsession}
+
+会话以 JSONL 保存，一行一条消息，包含工具调用与输出。长会话会触发压缩：把较早的对话摘要成一段，保留最近的原文。压缩是有损的，因此重要结论应让 Agent 写进文件，而不是留在对话里。
+
+\section{为什么会犯错}
+
+四类错误的成因不同，处理方式也不同。
+
+\begin{enumerate}
+  \item \textbf{信息不足}：没读到关键文件就下结论。表现为改错地方、漏掉配置。
+  \item \textbf{过度自信}：把猜测写成事实。表现为引用不存在的函数、编造路径。
+  \item \textbf{局部最优}：只改看得见的一处，不追调用方。表现为修好一个用例、弄坏另一处。
+  \item \textbf{权限过大}：能做的事超出必要范围。表现为一条命令造成大范围改动。
+\end{enumerate}
+
+前两类靠提供上下文与要求验证；第三类靠测试与静态检查；第四类只能靠外部约束，也就是本书第三十四章的主题。
+
+\section{Agent 与脚本的差别}
+
+脚本按固定顺序执行，Agent 按目标自行决定步骤。这个差别决定了使用方式。
+
+\begin{booktable}{\textwidth}{J{0.667} J{1.333}}
+\toprule
+维度 & 差别 \\
+\midrule
+可预测性 & 脚本确定，Agent 每次路径可能不同 \\
+适用任务 & 步骤明确用脚本，需要判断用 Agent \\
+验证方式 & 脚本看输出，Agent 看结果与差异 \\
+成本 & 脚本几乎为零，Agent 按 token 计费 \\
+\bottomrule
+\end{booktable}
+
+判断标准很简单：如果任务能用十行脚本写清楚，就写脚本；如果需要读若干文件、权衡几种做法、边做边验证，才交给 Agent。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 画出一次你使用过的 AI 交互的五个步骤，标出哪一步在本地执行。
+  \item 列出你希望 Agent 拥有的三类工具，说明每一类可能造成的最大损失。
+  \item 找到本机某个 CLI 工具的会话目录，统计一个会话文件的行数与大小。
+  \item 举一个“应当写脚本而不是交给 Agent”的例子，说明理由。
+  \item 举一个“适合交给 Agent”的例子，说明它需要哪些工具权限。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 描述工具调用循环的五个步骤，指出安全边界在哪；
+  \item 按风险排序六类工具；
+  \item 说明上下文压缩的代价，知道重要结论应落到文件；
+  \item 区分四类错误并说出对应的处理方式；
+  \item 判断一项任务该写脚本还是交给 Agent。
+\end{itemize}
+\end{checkpoint}

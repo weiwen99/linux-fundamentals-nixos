@@ -1,0 +1,117 @@
+\chapter{安全基础}
+\chapterlead{安全不是一套工具，而是一组取舍：攻击面越小、权限越窄、暴露越少，出问题的概率越低。本章给出个人服务器上性价比最高的六项措施。}
+
+\section{起步：先看暴露面}
+
+\begin{shellsession}
+$ ss -tlnp
+$ sudo nft list ruleset
+$ systemctl list-units --type=service --state=running
+$ last -n 10
+$ journalctl -u sshd | grep -c "Failed password"
+\end{shellsession}
+
+五条命令回答：开了哪些端口、防火墙规则是什么、跑了哪些服务、谁登录过、SSH 被猜了多少次。最后一项通常是个大数字，它说明公网上的扫描是持续不断的。
+
+\section{六项措施}
+
+\begin{booktable}{\textwidth}{J{0.815} J{1.185}}
+\toprule
+措施 & 挡住什么 \\
+\midrule
+只开必要端口 & 扫描与自动化攻击 \\
+密钥登录、禁用密码 & 暴力猜测 \\
+最小权限用户 & 一旦被入侵的扩散范围 \\
+自动更新与重建 & 已知漏洞的长期存在 \\
+备份与异地副本 & 勒索与误删 \\
+日志与告警 & 长期潜伏的异常 \\
+\bottomrule
+\end{booktable}
+
+前两项在第二十五章做过，第三项在服务器部署时落实，第四项在第十五章。本章补上后两项的具体做法。
+
+\section{自动更新}
+
+\begin{nixcode}
+system.autoUpgrade = {
+  enable = true;
+  allowReboot = false;
+  dates = "04:00";
+  flake = "github:weiwen/srv1";
+};
+\end{nixcode}
+
+\texttt{allowReboot = false} 表示只切换配置、不自动重启。内核与部分库的更新需要重启才生效，因此还要定期手工重启，或设置为在指定时间窗口自动重启。
+
+自动更新的风险是新版本引入回归。折中做法：自动更新到新代但不自动重启，观察一天后再重启；出问题时用旧代回滚。
+
+\section{fail2ban 与 SSH 防护}
+
+\begin{nixcode}
+services.fail2ban = {
+  enable = true;
+  maxretry = 3;
+  bantime = "1h";
+  jails.sshd.settings = {
+    enabled = true;
+    port = "ssh";
+  };
+};
+\end{nixcode}
+
+连续三次失败的来源地址被封一小时。它挡不住分布式扫描，但能显著减少日志噪音。真正的防线仍然是密钥登录。
+
+\begin{shellsession}
+$ sudo fail2ban-client status sshd
+$ journalctl -u fail2ban -n 20
+\end{shellsession}
+
+\section{密钥与秘密}
+
+三条规则：不入库、不落盘到非加密位置、不共用。
+
+\begin{nixcode}
+# 运行时注入，不进入 store
+systemd.services.api.serviceConfig.EnvironmentFile = "/run/secrets/api.env";
+\end{nixcode}
+
+\begin{shellsession}
+$ ls -l /run/secrets/
+$ sudo install -m 600 /dev/null /run/secrets/api.env
+\end{shellsession}
+
+\texttt{/run} 是内存文件系统，重启即清空，由部署流程重新写入。把秘密放在这里，可以避免它出现在 store、Git 历史与备份中。需要更强的方案时，可用 \texttt{sops-nix} 或 \texttt{agenix} 把加密后的秘密放进仓库，开机时用主机密钥解密。
+
+\section{审计与回顾}
+
+安全设置会随时间腐化：临时开放的端口忘了关，测试账户忘了删。
+
+\begin{shellsession}
+$ sudo nix-store --verify --check-contents
+$ systemctl list-units --state=failed
+$ grep -rn "PasswordAuthentication" /etc/nixos/
+$ sudo awk -F: '$3>=1000 && $3<65534 {print $1}' /etc/passwd
+\end{shellsession}
+
+四条检查分别针对：store 完整性、失败的服务、配置里是否又打开了密码登录、有哪些普通用户。每月跑一次，十分钟内能完成。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用五条命令列出本机的暴露面，逐项判断是否必要。
+  \item 统计最近一周 SSH 失败登录次数，说明这个数字的含义。
+  \item 配置 fail2ban，用错误的密码尝试三次，确认地址被封。
+  \item 把一项服务秘密改为从 \texttt{/run/secrets} 读取，确认它不在 store 里。
+  \item 按四项检查做一次月度审计，写出发现的问题。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用五条命令评估一台服务器的暴露面；
+  \item 说明六项措施各自挡住什么风险；
+  \item 配置自动更新并解释为何默认不自动重启；
+  \item 用 fail2ban 降低扫描噪音，知道它的局限；
+  \item 按三条规则处理密钥与秘密，并做月度审计。
+\end{itemize}
+\end{checkpoint}

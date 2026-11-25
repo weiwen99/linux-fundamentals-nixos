@@ -25,6 +25,7 @@ $ uptime
 交互式 shell 在等待输入时显示提示符，通常形如：
 
 \begin{center}
+\figfit{%
 \begin{tikzpicture}[font=\ttfamily\small]
   \node[anchor=west] (u) at (0,0) {\textcolor{teal}{weiwen}};
   \node[anchor=west] (at) at ([xshift=1mm]u.east) {\textcolor{muted}{@}};
@@ -41,6 +42,7 @@ $ uptime
   \draw[rule] (p.south) -- ++(0,-4mm);
   \draw[rule] (d.south) -- ++(0,-4mm);
 \end{tikzpicture}
+}
 \end{center}
 
 三点需要记住。\texttt{\textasciitilde} 表示家目录，\texttt{\textasciitilde/projects} 即“家目录下的 projects”。末尾的 \texttt{\$} 表示普通用户，\texttt{\#} 表示 root。提示符不是命令的一部分，抄写命令时不应包含它。
@@ -56,6 +58,7 @@ $ ls -lh --sort=size /var/log
 这一行由四部分组成。
 
 \begin{center}
+\figfit{%
 \begin{tikzpicture}[font=\ttfamily\small, node distance=1mm]
   \node[draw=teal!70, fill=teal!7, rounded corners=1pt, inner sep=3pt] (cmd) {ls};
   \node[draw=ochre!70, fill=ochre!7, rounded corners=1pt, inner sep=3pt, right=3mm of cmd] (opt) {-lh};
@@ -65,6 +68,7 @@ $ ls -lh --sort=size /var/log
   \node[font=\scriptsize, text=ochre, below=3mm of opt2] {选项};
   \node[font=\scriptsize, text=ink, below=3mm of arg] {参数};
 \end{tikzpicture}
+}
 \end{center}
 
 \begin{itemize}
@@ -96,9 +100,7 @@ $ cd My Documents        # 被解析为两个参数：My 与 Documents
 
 三个按键的含义不同。
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{L{2.6cm} L{2.4cm} X}
+\begin{booktable}{\textwidth}{L{1.114} L{1.029} J{0.857}}
 \toprule
 按键 & 动作 & 使用场景 \\
 \midrule
@@ -106,8 +108,7 @@ $ cd My Documents        # 被解析为两个参数：My 与 Documents
 \texttt{Ctrl+Z} & 挂起到后台 & 临时返回提示符，稍后继续 \\
 \texttt{Ctrl+D} & 发送输入结束 & 退出 shell，或结束等待输入的程序 \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{booktable}
 
 挂起后用 \texttt{jobs} 查看后台任务，\texttt{fg} 将最近的任务调回前台，\texttt{bg} 使其在后台继续运行。三者之中最常用的是 \texttt{Ctrl+C}。
 
@@ -158,15 +159,13 @@ $ echo $EDITOR
 nvim
 \end{shellsession}
 
-\texttt{export} 设置的变量会传递给随后启动的程序。需要长期生效时，写入 shell 的配置文件；在 NixOS 上推荐通过 Home Manager 声明（第十六章）。
+\texttt{export} 设置的变量会传递给随后启动的程序。需要长期生效时，写入 shell 的配置文件；在 NixOS 上推荐通过 Home Manager 声明（第十四章）。
 
 \section{shell 的选择}
 
 常见 shell 有三种。
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{L{2.2cm} L{2.2cm} X}
+\begin{booktable}{\textwidth}{L{1.064} L{1.064} J{0.871}}
 \toprule
 shell & 特点 & 适用场景 \\
 \midrule
@@ -174,16 +173,13 @@ bash & 预装于多数系统，语法最通用 & 编写脚本、登录服务器�
 zsh & 补全能力强，主题丰富 & 日常交互，愿意维护配置 \\
 fish & 默认开启语法高亮与自动建议 & 不打算配置交互环境 \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{booktable}
 
 本书的命令在三种 shell 下均可执行。脚本一律用 bash 编写：服务器上必然存在 bash，不一定存在 zsh 或 fish。交互环境可按偏好选择，脚本选择最通用的实现。
 
 \section{旧工具与新工具}
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{L{3.2cm} L{2.6cm} X}
+\begin{booktable}{\textwidth}{L{1.190} L{0.967} J{0.843}}
 \toprule
 旧工具 & 新工具 & 差异 \\
 \midrule
@@ -192,8 +188,7 @@ fish & 默认开启语法高亮与自动建议 & 不打算配置交互环境 \\
 \texttt{cat} & \texttt{bat} & 语法高亮、行号、自动分页 \\
 \texttt{history} & \texttt{atuin} & 跨机器同步，可按目录与退出码过滤 \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{booktable}
 
 \begin{lab}[练习：四个按键]
 \begin{enumerate}

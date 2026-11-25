@@ -1,0 +1,158 @@
+\chapter{Oh My Pi}
+\chapterlead{Oh My Pi（命令名 \texttt{omp}）是一个终端内的编码 Agent，提供语言服务、调试器接入、会话树与多模型切换。本章说明安装、基本操作与 NixOS 上的声明式配置。}
+
+\section{版本与前提}
+
+截至 2026 年 11 月 25 日：
+
+\begin{booktable}{\textwidth}{J{0.741} J{1.259}}
+\toprule
+项目 & 值 \\
+\midrule
+npm 包 & \texttt{@oh-my-pi/pi-coding-agent} \\
+版本 & 19.1.1 \\
+运行时 & Bun 1.4.4 或更新 \\
+命令 & \texttt{omp} \\
+安装脚本 & \texttt{omp.sh/\allowbreak install} \\
+\bottomrule
+\end{booktable}
+
+\section{安装}
+
+官方提供四条路径。NixOS 上用第三或第四条，避免把运行时装进系统。
+
+\begin{shellsession}
+# 一、官方脚本，下载预编译二进制并校验 SHA-256
+$ curl -fsSL https://omp.sh/install | sh
+
+# 二、Bun
+$ bun install -g @oh-my-pi/pi-coding-agent
+
+# 三、Nix，直接运行
+$ nix run github:can1357/oh-my-pi
+\end{shellsession}
+
+在 NixOS 配置中以模块方式安装，配置也由 Nix 管理：
+
+\begin{nixcode}
+{
+  inputs.omp.url = "github:can1357/oh-my-pi";
+
+  # 在 Home Manager 模块中
+  imports = [ inputs.omp.homeManagerModules.default ];
+  programs.omp = {
+    enable = true;
+    settings.startup.quiet = true;
+  };
+}
+\end{nixcode}
+
+这份配置把 \texttt{omp} 装进用户环境，并把设置写进 \texttt{settings.json}，随配置重建生效。
+
+\section{第一次会话}
+
+\begin{shellsession}
+$ cd ~/proj
+$ omp
+$ omp --continue        # 继续上一次会话
+$ omp --resume          # 从历史会话中选择
+\end{shellsession}
+
+进入后直接描述目标。界面底部显示当前模型与快捷键提示。会话自动保存在 \texttt{\textasciitilde/.omp/agent/sessions} 下，按工作目录分组，格式为 JSONL，一行一条消息。
+
+常用操作：
+
+\begin{booktable}{\textwidth}{J{0.692} J{1.308}}
+\toprule
+操作 & 用途 \\
+\midrule
+\texttt{Ctrl+L} & 切换模型 \\
+\texttt{/compact} & 压缩上下文 \\
+\texttt{/tree} & 浏览会话分支 \\
+\texttt{!命令} & 在会话内执行命令并把输出加入上下文 \\
+\texttt{Esc} & 中断当前生成 \\
+\bottomrule
+\end{booktable}
+
+\texttt{!} 前缀值得单独说明：输入 \texttt{!git status} 会把结果直接并入上下文，比自己跑完再粘贴更省事，也更准确。
+
+\section{AGENTS.md}
+
+Agent 启动时读取项目说明文件，顺序是：全局 \texttt{\textasciitilde/.omp/agent/AGENTS.md}、从当前目录向上各级目录、当前目录。写清构建命令、测试命令、代码风格与禁止事项，能显著减少来回确认。
+
+\begin{textcode}
+# 项目说明
+
+## 常用命令
+- 构建：pnpm build
+- 测试：pnpm test
+- 检查：pnpm lint
+
+## 约定
+- TypeScript 严格模式
+- 提交信息用中文，标题不超过 50 字
+- 不要改动 migrations 目录
+\end{textcode}
+
+这份文件是给 Agent 的，也是给新同事的。能被写下来的约定，比口头传达可靠。
+
+\section{语言服务与调试}
+
+\texttt{omp} 接入了语言服务与调试器协议，因此重命名、跳转、查看类型这类操作走的是编译器而不是文本替换。前提是项目里对应的语言服务可用。
+
+\begin{shellsession}
+$ omp --help | grep -i lsp
+$ which typescript-language-server
+\end{shellsession}
+
+语言服务缺失时，Agent 会退回文本搜索，改名的可靠性下降。为项目准备环境时，把语言服务一并装进 devShell，Agent 和编辑器都能受益。
+
+\section{成本与模型}
+
+不同模型的单价差别很大。两件事能显著降低成本：把简单任务交给小模型，把上下文控制在必要范围。
+
+\begin{shellsession}
+$ omp --model <模型名>
+$ omp --smol <小模型名>     # 简单任务使用
+$ omp --plan                # 只规划，不执行
+\end{shellsession}
+
+长会话的上下文会不断增长，每次请求都携带全部历史，费用随之上升。一个任务完成后开新会话，比在一个会话里做十件事便宜。
+
+\section{一次完整任务}
+
+目标：给一个函数补单元测试，并让覆盖率上升到 80\% 以上。
+
+\begin{enumerate}
+  \item 确认 \texttt{AGENTS.md} 里写明了测试命令。
+  \item 让它先读实现与现有测试，输出计划，不改文件。
+  \item 确认计划后放开执行，观察它是否只改测试文件。
+  \item 跑测试与覆盖率，失败时把输出贴回会话。
+  \item 用 \texttt{git diff} 检查是否动到了无关文件。
+\end{enumerate}
+
+\begin{shellsession}
+$ git diff --stat
+$ pnpm test -- --coverage
+\end{shellsession}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{nix run} 运行一次，记录版本号。
+  \item 在项目里写一份 \texttt{AGENTS.md}，包含三条命令与两条约定。
+  \item 用 \texttt{!} 前缀执行一条命令，确认输出进入了上下文。
+  \item 用 \texttt{/tree} 回到会话中间某一轮，从那里继续，说明分支的行为。
+  \item 用 \texttt{-{}-plan} 跑一个任务，比较它与直接执行在成本与结果上的差别。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 说出当前版本、运行时要求与四条安装路径；
+  \item 用 Nix 模块声明式安装并管理设置；
+  \item 用 \texttt{--continue}、\texttt{--resume}、\texttt{/tree} 管理会话；
+  \item 写出有用的 \texttt{AGENTS.md}；
+  \item 通过模型选择与会话拆分控制成本。
+\end{itemize}
+\end{checkpoint}

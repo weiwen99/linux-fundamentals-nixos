@@ -1,0 +1,123 @@
+\chapter{监控与告警}
+\chapterlead{监控回答两个问题：现在是否正常，异常时如何知道。本章搭一套最小的监控组合：指标、日志、可用性检查与一条能真正送达的告警。}
+
+\section{起步：三条命令判断服务健康}
+
+\begin{shellsession}
+$ systemctl --failed
+$ df -h / /nix
+$ free -h
+$ ss -tlnp | grep -c LISTEN
+\end{shellsession}
+
+四条命令覆盖四类常见故障：服务崩溃、磁盘满、内存耗尽、端口未监听。把它们写成脚本，定时执行，就是最朴素的监控。
+
+\section{指标：node exporter 与 Prometheus}
+
+\begin{nixcode}
+services.prometheus = {
+  enable = true;
+  exporters.node = {
+    enable = true;
+    enabledCollectors = [ "systemd" "processes" ];
+  };
+  scrapeConfigs = [{
+    job_name = "node";
+    static_configs = [{ targets = [ "127.0.0.1:9100" ]; }];
+  }];
+};
+\end{nixcode}
+
+node exporter 把 CPU、内存、磁盘、网络、systemd 单元状态暴露成文本指标；Prometheus 定时抓取并保存。两者都在本机时配置最简单，对外只开一个端口给 Grafana 或直接查。
+
+\begin{shellsession}
+$ curl -s localhost:9100/metrics | grep node_filesystem_avail_bytes | head -3
+$ curl -s 'localhost:9090/api/v1/query?query=up'
+\end{shellsession}
+
+常用的四条查询值得记住。
+
+\begin{itemize}
+  \item \texttt{up}：抓取是否成功。
+  \item \texttt{node\_filesystem\_avail\_bytes}：剩余空间。
+  \item \texttt{node\_memory\_MemAvailable\_bytes}：可用内存。
+  \item \texttt{node\_systemd\_unit\_state}：服务状态。
+\end{itemize}
+
+\section{可用性检查}
+
+指标来自服务器自身，服务器整体宕机时它什么都报不出来。外部检查从另一台机器发起。
+
+\begin{nixcode}
+services.uptime-kuma.enable = true;
+\end{nixcode}
+
+uptime-kuma 提供网页界面，配置 HTTP、TCP、Ping 三类检查，记录可用率与响应时间。它适合放在与业务不同的机器上；只有一台机器时，至少让检查走域名而不是 localhost，这样能覆盖 DNS 与证书问题。
+
+\section{日志}
+
+\begin{nixcode}
+services.journald.extraConfig = ''
+  SystemMaxUse=1G
+  MaxRetentionSec=30day
+'';
+\end{nixcode}
+
+限制日志占用与保留期，避免日志把磁盘写满。业务日志应当结构化：每行一条记录，含时间、级别、请求标识，便于用 \texttt{journalctl -o json} 与 \texttt{jq} 处理。
+
+\begin{shellsession}
+$ journalctl -u api -o json | jq -r 'select(.PRIORITY<"4") | .MESSAGE' | tail -20
+\end{shellsession}
+
+这条命令取出该服务最近二十条警告及以上级别的日志，用于快速浏览异常。
+
+\section{一条能送达的告警}
+
+告警的价值取决于能否送达。三条路径，按可靠性排列。
+
+\begin{booktable}{\textwidth}{J{0.769} J{1.231}}
+\toprule
+方式 & 特点 \\
+\midrule
+邮件 & 需要 SMTP，容易进垃圾箱 \\
+即时消息机器人 & 送达快，需网络可达 \\
+短信或电话 & 最可靠，按条计费 \\
+\bottomrule
+\end{booktable}
+
+个人项目通常用即时消息机器人：systemd 服务里一条 \texttt{curl} 即可。
+
+\begin{nixcode}
+systemd.services.alert-disk = {
+  script = ''
+    avail=$(df --output=avail / | tail -1)
+    if [ "$avail" -lt 5242880 ]; then
+      curl -s -X POST "$WEBHOOK" -d '{"text":"磁盘剩余不足 5GB"}'
+    fi
+  '';
+  startAt = "*:0/30";
+};
+\end{nixcode}
+
+告警要有阈值与去重：同一条消息每半小时重复一次就够，不要每次检查都发。长期重复的告警会被忽略，等于没有告警。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 写出四条健康检查命令的脚本，输出一行摘要。
+  \item 启用 node exporter，用 \texttt{curl} 取出磁盘可用空间的指标并解释数值单位。
+  \item 用 Prometheus 查询 \texttt{up}，人为停掉 exporter，观察结果变化。
+  \item 配置 journald 的容量与保留期，重建后确认配置生效。
+  \item 写一条磁盘告警，阈值设为 5\,GB，验证能收到消息，并说明如何去重。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用四条命令快速判断服务健康；
+  \item 用 node exporter 与 Prometheus 采集与查询指标；
+  \item 说明为什么需要外部可用性检查；
+  \item 限制日志占用并从结构化的 journal 输出中筛选；
+  \item 配置一条能送达、有阈值、有去重的告警。
+\end{itemize}
+\end{checkpoint}

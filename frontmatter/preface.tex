@@ -2,7 +2,7 @@
 \addcontentsline{toc}{chapter}{前言}
 \markboth{前言}{前言}
 
-本书面向没有编程经验、没有使用过命令行、没有安装过操作系统的读者。它不追求覆盖 Linux 的全部内容，也不以速成为目标。读完之后能够做到四件事：独立安装一台 NixOS；以命令行完成日常工作并理解其设计；读懂并修改系统配置；部署并维护一台 Linux 服务器。
+本书面向没有编程经验、没有使用过命令行、没有安装过操作系统的读者。读完之后能够做到四件事：独立安装一台 NixOS；以命令行完成日常工作并理解其设计；读懂并修改系统配置；部署并维护一台 Linux 服务器。
 
 \section*{选用 NixOS 的理由}
 
@@ -20,8 +20,12 @@
 
 最后一部分讨论 AI Agent。内容不涉及“AI 是否取代程序员”一类判断，只回答具体问题：如何在本机安装一个 Agent，如何限定它的权限，如何控制调用成本，如何审查它修改过的文件。工具会变化，这些判断依据相对稳定。
 
-\vspace{12pt}
-\begin{flushright}
-\bookauthor\\
-\bookdate
-\end{flushright}
+\ifbknarrow
+  \par\vspace{6pt}\noindent\bookauthor\quad\bookdate
+\else
+  \vspace{12pt}
+  \begin{flushright}
+  \bookauthor\\
+  \bookdate
+  \end{flushright}
+\fi

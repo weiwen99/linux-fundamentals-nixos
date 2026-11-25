@@ -1,0 +1,142 @@
+\chapter{文本处理}
+\chapterlead{Unix 把纯文本当作程序之间的通用数据格式。日志、配置、命令输出都是文本，因此一组只处理文本行的工具可以组合出大量功能。本章用一份真实日志演练过滤、提取、统计与改写。}
+
+\section{起步：从日志里读出四件事}
+
+准备一份样本日志。
+
+\begin{shellsession}
+$ mkdir -p ~/lab/logs && cd ~/lab/logs
+$ cat > access.log <<'EOF'
+10.0.0.5 - - [24/Nov/2026:10:01:12 +0800] "GET /index.html HTTP/1.1" 200 5120
+10.0.0.7 - - [24/Nov/2026:10:01:15 +0800] "GET /style.css HTTP/1.1" 200 1024
+10.0.0.5 - - [24/Nov/2026:10:02:03 +0800] "POST /api/login HTTP/1.1" 401 256
+192.168.1.9 - - [24/Nov/2026:10:02:41 +0800] "GET /index.html HTTP/1.1" 200 5120
+10.0.0.7 - - [24/Nov/2026:10:03:02 +0800] "GET /missing HTTP/1.1" 404 128
+10.0.0.5 - - [24/Nov/2026:10:03:55 +0800] "POST /api/login HTTP/1.1" 200 512
+EOF
+$ wc -l access.log
+6 access.log
+\end{shellsession}
+
+下面四条命令分别回答四个问题。
+
+\begin{shellsession}
+$ awk '$9 >= 400' access.log          # 哪些请求失败了
+$ awk '{print $1}' access.log | sort | uniq -c | sort -rn   # 谁访问得最多
+$ grep -c " 200 " access.log          # 成功多少次
+$ awk '{sum += $10} END {print sum}' access.log            # 总流量
+\end{shellsession}
+
+\texttt{awk} 按空白把每行切分成字段，\texttt{\$1} 是第一列，\texttt{\$9} 是状态码，\texttt{\$10} 是响应字节数。\texttt{END} 块在所有行处理完后执行一次，用来汇总。三条命令的组合表明：不需要专门的日志分析程序，通用文本工具已经够用。
+
+\section{查看文件}
+
+\begin{shellsession}
+$ cat access.log        # 全文输出，适合短文件
+$ less access.log       # 分页查看，/ 搜索，q 退出
+$ head -3 access.log    # 前三行
+$ tail -2 access.log    # 后两行
+$ tail -f /var/log/syslog   # 持续输出新增内容，Ctrl+C 退出
+\end{shellsession}
+
+\texttt{tail -f} 是排查线上问题的常用手段：先复现问题，再观察日志尾部逐行出现的内容。文件被轮转后 \texttt{-f} 会失效，\texttt{tail -F} 能跟随重命名后的新文件。
+
+\begin{toolswap}{cat}{bat}
+\texttt{bat} 在输出时加语法高亮、行号与 Git 修改标记，长文件自动分页。管道中检测到输出不是终端时，它会退化为纯文本，因此可以安全替换脚本里的 \texttt{cat}。
+\end{toolswap}
+
+\section{过滤：grep 与 rg}
+
+\begin{shellsession}
+$ grep " 404 " access.log
+$ grep -n "POST" access.log           # 带行号
+$ grep -c "10.0.0.5" access.log       # 计数
+$ grep -i "get /index" access.log     # 忽略大小写
+$ grep -v "10.0.0.5" access.log       # 反向匹配
+$ grep -E "40[13]" access.log         # 扩展正则
+\end{shellsession}
+
+递归搜索时，\texttt{grep} 需要 \texttt{-r}，并且默认会进入 \texttt{.git} 与 \texttt{node\_modules}：
+
+\begin{shellsession}
+$ grep -rn "hostName" /etc/nixos
+$ rg -n "hostName" /etc/nixos
+\end{shellsession}
+
+\texttt{rg} 默认递归、默认跳过版本控制忽略的路径、默认输出行号与文件名。在代码仓库里，它的速度高于 \texttt{grep -r}，因为跳过了版本控制忽略的文件。
+
+\begin{booktable}{\textwidth}{L{1.143} L{1.044} J{0.812}}
+\toprule
+任务 & grep & rg \\
+\midrule
+递归搜索 & \texttt{grep -rn 模式 路径} & \texttt{rg -n 模式 路径} \\
+只列文件名 & \texttt{grep -rl 模式} & \texttt{rg -l 模式} \\
+查找文件类型 & 需配合 \texttt{find} & \texttt{rg -t py 模式} \\
+排除目录 & \texttt{-{}-exclude-dir=} & 默认读 \texttt{.gitignore} \\
+上下文行 & \texttt{-A 3 -B 3} & \texttt{-A 3 -B 3} \\
+\bottomrule
+\end{booktable}
+
+\section{改写：sed 与 sd}
+
+\texttt{sed} 是流编辑器，按行处理，不打开交互界面。
+
+\begin{shellsession}
+$ sed 's/10.0.0.5/10.0.0.50/g' access.log    # 替换，输出到屏幕
+$ sed -i 's/8080/80/g' nginx.conf            # 就地修改
+$ sed -n '2,4p' access.log                   # 只打印第 2 到 4 行
+$ sed '/^#/d' config.conf                    # 删除注释行
+\end{shellsession}
+
+\texttt{sed -i} 会直接改写文件，且不保留备份。执行前先不加 \texttt{-i} 运行一次，确认输出符合预期。
+
+\begin{toolswap}{sed -i 's/a/b/g'}{sd 'a' 'b'}
+\texttt{sd} 的语法是“找什么、换成什么、在哪个文件”，不必记 \texttt{s///g} 的定界符，正则默认使用与主流语言一致的写法。它输出改动预览，加 \texttt{-p} 直接写入文件。
+\end{toolswap}
+
+\section{结构化：cut、sort、uniq、tr、wc}
+
+\begin{shellsession}
+$ cut -d' ' -f1 access.log | sort -u          # 去重后的客户端地址
+$ cut -d' ' -f9 access.log | sort | uniq -c   # 每种状态码的次数
+$ tr '[:lower:]' '[:upper:]' < access.log | head -1
+$ wc -l access.log                            # 行数
+$ sort -k10 -n access.log | tail -1           # 响应最大的请求
+\end{shellsession}
+
+\texttt{uniq} 只合并相邻的重复行，因此必须先 \texttt{sort}。\texttt{cut} 只能按单个字符分隔，遇到连续空格会切出空字段，字段数不整齐时应改用 \texttt{awk}。
+
+\section{组合成脚本}
+
+把上面的片段写成一行可复用的命令，输出“按状态码分组的请求数，从多到少”：
+
+\begin{shellsession}
+$ awk '{print $9}' access.log | sort | uniq -c | sort -rn
+      3 200
+      1 401
+      1 404
+\end{shellsession}
+
+这类一行命令的价值在于即时性：不用写程序，也不用打开编辑器。代价是可读性差，超过三步的组合应写进脚本文件，第十章说明如何组织。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 统计样本日志中出现次数最多的请求路径。提示：路径是引号内的第二段，可先用 \texttt{awk -F'"' '{print \$2}'} 提取。
+  \item 找出所有返回 4xx 的请求，只输出客户端地址与状态码两列。
+  \item 用 \texttt{sed} 把日志中的 \texttt{+0800} 全部替换为 \texttt{UTC+8}，先预览再就地修改。
+  \item 用 \texttt{rg} 在 \texttt{/etc/nixos} 中搜索 \texttt{stateVersion}，记录行号。
+  \item 把 \texttt{access.log} 按状态码排序后取前三条，比较 \texttt{sort -k9} 与 \texttt{sort -k9 -n} 的结果差异。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 \texttt{awk} 按列提取与汇总，理解 \texttt{\$n} 与 \texttt{END} 的含义；
+  \item 用 \texttt{grep} 与 \texttt{rg} 完成递归检索，并说出两者的默认行为差异；
+  \item 用 \texttt{sed} 做替换与行筛选，知道 \texttt{-i} 的风险；
+  \item 用 \texttt{cut}、\texttt{sort}、\texttt{uniq}、\texttt{tr}、\texttt{wc} 组合出统计命令；
+  \item 把三到五步的文本处理串成一行，并判断何时应写成脚本。
+\end{itemize}
+\end{checkpoint}

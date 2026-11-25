@@ -39,8 +39,9 @@ Filesystem      Size  Used Avail Use% Mounted on
 
 一段程序由两部分组成：指令序列，以及指令处理的数据。屏幕上的每个像素都是内存中的一个数值；文字、图片、视频都是这些数值按约定排列的结果。硬件不识别字符，只搬运与计算数值。
 
-\begin{figure}[htbp]
+\begin{figure}
 \centering
+\figfit{%
 \begin{tikzpicture}[font=\small, node distance=8mm]
   \node[draw=rule, fill=white, minimum width=132mm, minimum height=11mm, align=center]
     (apps) {应用程序\\[-1pt]{\footnotesize\color{muted} 浏览器 \textperiodcentered\ 编辑器 \textperiodcentered\ 终端中的命令}};
@@ -55,6 +56,7 @@ Filesystem      Size  Used Avail Use% Mounted on
   \draw[-{Latex[length=1.5mm]}, teal, thick] ([xshift=-8mm]sysc.south) -- ([xshift=-8mm]kern.north);
   \draw[-{Latex[length=1.5mm]}, teal, thick] ([xshift=-8mm]kern.south) -- ([xshift=-8mm]hw.north);
 \end{tikzpicture}
+}
 \caption{机器的四层结构。程序不直接访问硬件，请求逐层向下，结果逐层返回。}
 \end{figure}
 
@@ -94,10 +96,10 @@ Linux 严格意义上仅指一个内核。1991 年，林纳斯·托瓦兹发布�
 
 可选发行版有数百个，对初学者有实际差别的只有少数几个。下表列出影响学习成本的部分。
 
-\begin{table}[htbp]
+\begin{table}
 \centering
 \small
-\begin{tabularx}{\textwidth}{L{2.1cm} L{3.3cm} L{1.6cm} L{4.0cm} X}
+\begin{booktable}{\textwidth}{L{0.783} L{1.160} L{0.720} L{1.493} J{0.844}}
 \toprule
 发行版 & 更新节奏 & 包管理 & 适用对象 & 主要代价 \\
 \midrule
@@ -107,7 +109,7 @@ Fedora & 约半年 & dnf & 使用新硬件、需要较新软件 & 生命周期�
 Arch & 滚动更新 & pacman & 愿意阅读文档并自行维护 & 升级冲突需自行处理 \\
 NixOS & 半年一个稳定版 & nix & 需要理解系统构成与回滚能力 & 学习曲线陡，教程不通用 \\
 \bottomrule
-\end{tabularx}
+\end{booktable}
 \caption{五个常见发行版的取舍}
 \end{table}
 

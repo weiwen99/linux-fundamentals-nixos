@@ -17,11 +17,22 @@
 ## 构建
 
 ```sh
-./build.sh
+./build.sh              # 构建全部版式
+./build.sh ereader      # 只构建一种
+./build.sh clean        # 清理
 ```
 
+全书排四种版式，正文相同，纸张、字号、页边距与配色不同：
+
+| 版式 | 纸张 | 用途 |
+|---|---|---|
+| `screen` | A4，11pt | 屏幕阅读，彩色 |
+| `print` | A4，11pt，内侧加宽装订线 | 双面印刷，页边距内外不对称 |
+| `ereader` | 91mm × 122mm，10pt | 6 寸电子书阅读器，灰度 |
+| `phone` | 88mm × 176mm，10pt | 手机竖屏，灰度 |
+
 依赖：XeLaTeX（TeX Live 2025 或更新，需 `ctex`、`minted`、`tcolorbox`、`titlesec`、
-`float`）、`latexminted` 或 `pygmentize`、`nix`（用来定位中文字体）。
+`xltabular`、`adjustbox`、`float`）、`latexminted` 或 `pygmentize`、`nix`（用来定位中文字体）。
 
 在 NixOS 上：
 
@@ -34,13 +45,14 @@ nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#source-han-serif \
 `Path` + `FontIndex` 从字体集合里取字面；没有 nix 时会退回按字族名查找。
 字体文件不入库，细节见 `docs/fonts.md`。
 
-产物：`build/main.pdf`。
+产物：`build/<版式>/main-<版式>.pdf`。
 
 ## 目录结构
 
 ```
 main.tex                 主文件
-tex/                     版式、封面、元信息
+tex/                     版式参数（layout.tex）、封面、元信息
+variants/                四种版式的入口包装，由 build.sh 调用
 frontmatter/             前言、阅读指南
 chapters/                正文，一章一个文件
 tools/                   构建辅助脚本（字体抽取）

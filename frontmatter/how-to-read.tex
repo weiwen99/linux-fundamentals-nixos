@@ -12,9 +12,7 @@
 
 读者的硬件条件不同，安装章按三种情况分别给出步骤。
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{L{2.2cm} L{2.4cm} L{4.2cm} X}
+\begin{booktable}{\textwidth}{L{0.782} L{0.854} L{1.493} J{0.871}}
 \toprule
 路线 & 成本 & 覆盖范围 & 章节 \\
 \midrule
@@ -22,8 +20,7 @@
 实体机 & 一台闲置计算机 & 显卡、Wi-Fi、蓝牙、休眠、双系统 & 第十八章 \\
 VPS & 每月数十元 & 公网服务器、域名、TLS、远程运维 & 第十九章 \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{booktable}
 
 建议顺序为虚拟机、实体机、VPS。先在虚拟机中完成安装与回滚练习，再操作实体机；日常使用熟练后，把服务器部分放在 VPS 上验证。这样安排的目的只有一个：把出错的代价降到最低。
 

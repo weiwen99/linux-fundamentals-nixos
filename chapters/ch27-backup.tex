@@ -1,0 +1,119 @@
+\chapter{数据、备份与恢复}
+\chapterlead{备份的价值只在恢复时体现。本章用 restic 建立一套自动备份，重点是恢复演练：没有演练过的备份，等于没有备份。}
+
+\section{起步：第一次备份与第一次恢复}
+
+\begin{nixcode}
+environment.systemPackages = with pkgs; [ restic ];
+\end{nixcode}
+
+\begin{shellsession}
+$ export RESTIC_REPOSITORY=/mnt/backup/restic
+$ export RESTIC_PASSWORD_FILE=/run/secrets/restic-pass
+$ restic init
+$ restic backup /home/weiwen /var/lib/api
+$ restic snapshots
+\end{shellsession}
+
+\texttt{init} 建立仓库，\texttt{backup} 生成快照，\texttt{snapshots} 列出已有快照。restic 按内容分块去重，因此第二次备份只存储变化部分。
+
+恢复同样简单，但必须演练：
+
+\begin{shellsession}
+$ restic restore latest --target /tmp/restore
+$ restic restore <快照ID> --target /tmp/restore --include /home/weiwen/lab
+$ restic mount /mnt/tmp      # 以文件系统方式浏览历史
+\end{shellsession}
+
+\texttt{mount} 把仓库挂成一个只读目录树，可以像浏览文件一样找到某个时间点的某个文件，比逐次 \texttt{restore} 直观。
+
+\section{三种丢失与三份副本}
+
+需要防的丢失有三类：误删（文件被人删掉）、损坏（磁盘或文件系统损坏）、灾难（整机或机房丢失）。三类需要不同的副本位置。
+
+\begin{booktable}{\textwidth}{J{0.769} J{1.231}}
+\toprule
+副本 & 防住什么 \\
+\midrule
+本机快照 & 误删、改坏，恢复最快 \\
+异地磁盘或 NAS & 磁盘损坏、整机故障 \\
+远端对象存储 & 机房级灾难 \\
+\bottomrule
+\end{booktable}
+
+“三份副本、两种介质、一份异地”是常见的最低标准。个人使用时，本机加一块异地磁盘已经能覆盖绝大多数情况。
+
+\section{自动化}
+
+\begin{nixcode}
+services.restic.backups.daily = {
+  repository = "/mnt/backup/restic";
+  passwordFile = "/run/secrets/restic-pass";
+  paths = [ "/home/weiwen" "/var/lib/api" ];
+  exclude = [ "/home/weiwen/.cache" "/home/weiwen/lab/tmp" ];
+  timerConfig = {
+    OnCalendar = "daily";
+    Persistent = true;
+  };
+  pruneOpts = [
+    "--keep-daily 7"
+    "--keep-weekly 4"
+    "--keep-monthly 6"
+  ];
+};
+\end{nixcode}
+
+\texttt{Persistent = true} 让错过的任务在下次开机时补跑。\texttt{pruneOpts} 控制保留策略：日备留七天、周备留四周、月备留六个月，是家用与服务器的通用起点。
+
+密码文件放在 nixpkgs 的 secrets 机制之外，由部署流程写入，不进入 store。这一点很关键：备份仓库的密码若与备份放在同一台机器上，磁盘损坏时两者一起丢。
+
+\section{验证备份是否可用}
+
+备份任务的退出码为 0 不代表能恢复。三项检查按成本递增。
+
+\begin{shellsession}
+$ restic check                       # 元数据一致性
+$ restic check --read-data-subset=5% # 抽样读取数据块
+$ restic restore latest --target /tmp/verify && diff -r /tmp/verify/home/weiwen/lab ~/lab
+\end{shellsession}
+
+第一项快，适合每次备份后自动执行。第二项慢，适合每周一次。第三项是真正的恢复演练，每季度做一次，把恢复过程写成步骤清单。
+
+\begin{warnbox}[备份的三个常见失败]
+一是路径写错，备份了一个空目录，任务一直是成功状态。二是排除规则过宽，把数据目录本身排掉了。三是密码丢失，仓库无法打开。前两项靠 \texttt{restic snapshots} 与 \texttt{restic ls} 抽查即可发现，第三项要求密码至少存放在两个独立位置。
+\end{warnbox}
+
+\section{数据库的备份}
+
+直接复制数据库文件通常得到不一致的状态。正确做法是让数据库导出一份逻辑备份，再备份这个文件。
+
+\begin{nixcode}
+services.postgresqlBackup = {
+  enable = true;
+  databases = [ "api" ];
+  startAt = "*-*-* 03:15:00";
+};
+\end{nixcode}
+
+导出的文件放在 \texttt{/var/backup/postgresql}，随后由 restic 一并备份。恢复时先建库，再用 \texttt{psql} 导入。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 初始化一个 restic 仓库，备份家目录，用 \texttt{snapshots} 确认。
+  \item 删除一个文件，用 \texttt{restic mount} 找到它并恢复，记录耗时。
+  \item 配置每日自动备份与保留策略，重建后用 \texttt{systemctl list-timers} 确认。
+  \item 运行 \texttt{restic check -{}-read-data-subset=5\%}，记录输出与耗时。
+  \item 写一份恢复步骤清单，要求他人照做能在三十分钟内恢复一份文件。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 restic 完成备份、查看、恢复与挂载浏览；
+  \item 说明三类丢失与三份副本的对应关系；
+  \item 配置带保留策略的自动备份；
+  \item 用三项检查验证备份可恢复，并解释各自成本；
+  \item 正确处理数据库这类不能直接复制的数据。
+\end{itemize}
+\end{checkpoint}

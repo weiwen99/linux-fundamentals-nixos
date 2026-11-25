@@ -1,0 +1,149 @@
+\chapter{网络与远程登录}
+\chapterlead{网络编程接口把通信抽象成地址与端口。本章说明如何查看本机地址、判断端口是否可达，如何用密钥登录远程主机，以及如何在不暴露端口的前提下转发连接。}
+
+\section{起步：四个查询}
+
+\begin{shellsession}
+$ ip -brief address
+lo              UNKNOWN  127.0.0.1/8 ::1/128
+enp1s0          UP       192.168.1.42/24 fe80::1c2a:3bff:fe4d:5e6f/64
+$ ip route show default
+default via 192.168.1.1 dev enp1s0 proto dhcp src 192.168.1.42 metric 100
+$ ss -tlnp
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port
+LISTEN 0      128    0.0.0.0:22         0.0.0.0:*
+LISTEN 0      128    127.0.0.1:631      0.0.0.0:*
+$ ping -c 3 1.1.1.1
+\end{shellsession}
+
+四条命令回答四个问题：本机地址、默认网关、正在监听的端口、外网是否通。\texttt{ss -tlnp} 的参数含义：\texttt{t} 是 TCP，\texttt{l} 是监听，\texttt{n} 是数字端口，\texttt{p} 显示进程。\texttt{127.0.0.1:631} 表示只接受本机连接，\texttt{0.0.0.0:22} 表示所有网卡都接受。
+
+\begin{booktable}{\textwidth}{L{1.214} J{0.786}}
+\toprule
+地址段 & 含义 \\
+\midrule
+\texttt{127.0.0.0/8} & 本机回环，永不离开主机 \\
+\texttt{192.\allowbreak{}168.\allowbreak{}0.\allowbreak{}0/\allowbreak{}16}、\texttt{10.0.0.0/8}、\texttt{172.16.0.0/12} & 私有地址，仅内网可达 \\
+\texttt{169.\allowbreak{}254.\allowbreak{}0.\allowbreak{}0/\allowbreak{}16} & 链路本地地址，通常是 DHCP 失败 \\
+\texttt{0.0.0.0} & 作为监听地址时表示所有网卡 \\
+\texttt{::1} & IPv6 回环 \\
+\bottomrule
+\end{booktable}
+
+\section{域名与端口}
+
+域名通过 DNS 解析成地址。
+
+\begin{shellsession}
+$ dig +short example.com
+$ resolvectl status | head -12
+$ getent hosts example.com
+\end{shellsession}
+
+\texttt{dig} 直接向 DNS 服务器查询，输出完整记录；\texttt{resolvectl status} 显示本机使用的 DNS 服务器与解析策略；\texttt{getent hosts} 走系统的名称解析路径，结果更接近程序实际拿到的答案。解析不一致时，三者对比能定位问题在哪一层。
+
+端口号标识同一个地址上的不同服务。低于 1024 的端口在传统上需要 root 才能监听，现代 Linux 通过 \texttt{net.ipv4.ip\_unprivileged\_port\_start} 放宽了这一限制。
+
+\begin{booktable}{\textwidth}{L{1.113} L{1.021} J{0.866}}
+\toprule
+端口 & 服务 & 说明 \\
+\midrule
+22 & SSH & 远程登录，本书默认 \\
+80 & HTTP & 明文网页，第二十六章 \\
+443 & HTTPS & TLS 加密的网页 \\
+5432 & PostgreSQL & 数据库默认端口 \\
+6379 & Redis & 缓存服务 \\
+\bottomrule
+\end{booktable}
+
+\section{SSH：密钥登录}
+
+密码登录有两个问题：密码可能被暴力猜测，且每次连接都要人工输入。密钥登录解决这两点。
+
+在本地生成一对密钥：
+
+\begin{shellsession}
+$ ssh-keygen -t ed25519 -a 100 -C "weiwen@laptop"
+$ ls -l ~/.ssh
+-rw------- id_ed25519
+-rw-r--r-- id_ed25519.pub
+\end{shellsession}
+
+私钥 \texttt{id\_ed25519} 留在本地，权限必须是 600，否则 SSH 拒绝使用；公钥 \texttt{.pub} 可以公开。把公钥装到远程主机：
+
+\begin{shellsession}
+$ ssh-copy-id weiwen@192.168.1.42
+$ ssh weiwen@192.168.1.42
+\end{shellsession}
+
+\texttt{ssh-copy-id} 把公钥追加到远程主机的 \texttt{\textasciitilde/.ssh/authorized\_keys}。在 NixOS 上更稳妥的做法是写进配置，重装后自动恢复：
+
+\begin{nixcode}
+users.users.weiwen.openssh.authorizedKeys.keys = [
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... weiwen@laptop"
+];
+\end{nixcode}
+
+首次连接会提示确认主机指纹。指纹应当核对，而不是直接输入 \texttt{yes}：中间人攻击正是靠这一步被忽略而成立的。
+
+\section{客户端配置}
+
+重复输入主机名与参数没有必要。\texttt{\textasciitilde/.ssh/config} 可以保存常用主机的连接方式。
+
+\begin{textcode}
+Host lab
+  HostName 192.168.1.42
+  User weiwen
+  IdentityFile ~/.ssh/id_ed25519
+  ServerAliveInterval 30
+
+Host *.example.com
+  User deploy
+  Port 2222
+\end{textcode}
+
+此后 \texttt{ssh lab} 等价于完整的长命令。\texttt{ServerAliveInterval} 定期发送心跳，避免闲置连接被中间设备断开。配置支持通配符，可以按域名后缀统一设置。
+
+\section{传输文件}
+
+\begin{shellsession}
+$ scp report.pdf lab:/tmp/
+$ rsync -av --progress ~/lab/ lab:/srv/lab/
+$ rsync -av --delete ~/site/ lab:/srv/site/
+\end{shellsession}
+
+\texttt{scp} 适合单个小文件。\texttt{rsync} 只传输差异部分，适合目录同步；\texttt{-a} 保留权限、时间与符号链接，\texttt{-{}-delete} 让目标端删除源端已不存在的文件。\texttt{-{}-delete} 会让目标端与源端完全一致，路径末尾的斜线方向决定复制的是目录本身还是其内容，第一次使用应先加 \texttt{-n} 试运行。
+
+\section{端口转发}
+
+把远程主机的服务映射到本地，或把本地服务暴露给远程，都不需要修改防火墙。
+
+\begin{shellsession}
+$ ssh -L 8080:localhost:80 lab      # 本地 8080 转发到远端的 80
+$ ssh -R 9000:localhost:3000 lab    # 远端 9000 转发到本地的 3000
+$ ssh -D 1080 lab                   # 建立 SOCKS 代理
+\end{shellsession}
+
+\texttt{-L} 用于访问远端内网的服务，例如只监听 \texttt{127.0.0.1} 的数据库管理界面；\texttt{-R} 用于把本地开发中的服务临时暴露给远端；\texttt{-D} 把 SSH 当作代理使用。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{ip -\allowbreak{}brief address} 与 \texttt{ip route} 找出本机地址、网关与 DNS 服务器，记录三者。
+  \item 启动一个本地 HTTP 服务（如 \texttt{python3 -\allowbreak{}m http.\allowbreak{}server 8000}），用 \texttt{ss -tlnp} 确认监听地址，从另一台机器访问，说明结果差异。
+  \item 生成一对 ed25519 密钥，把公钥写入 NixOS 配置，重建后从另一台机器免密登录。
+  \item 用 \texttt{ssh -L} 把远端的某端口转发到本地，在浏览器中验证。
+  \item 用 \texttt{rsync -avn} 试运行一次目录同步，阅读输出中被标记为将删除的文件。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 \texttt{ip}、\texttt{ss}、\texttt{ping}、\texttt{dig} 判断网络状态；
+  \item 区分 \texttt{127.0.0.1} 与 \texttt{0.0.0.0} 在监听中的含义；
+  \item 生成密钥并配置免密登录，知道私钥权限的要求；
+  \item 用 \texttt{\textasciitilde/.ssh/config} 简化连接；
+  \item 用 \texttt{rsync} 同步目录，理解 \texttt{-{}-delete} 与尾斜线的效果；
+  \item 用 \texttt{-L} 与 \texttt{-R} 转发端口。
+\end{itemize}
+\end{checkpoint}

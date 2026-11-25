@@ -1,0 +1,167 @@
+\chapter{shell 脚本}
+\chapterlead{脚本把重复的命令固定成文件。本章从一个五行脚本写到能用的备份脚本，重点在错误处理与可读性，而不是语法细节。}
+
+\section{起步：第一个脚本}
+
+\begin{shellsession}
+$ mkdir -p ~/lab/bin && cd ~/lab/bin
+$ cat > hello.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+name=${1:-world}
+echo "hello, $name"
+EOF
+$ chmod +x hello.sh
+$ ./hello.sh
+hello, world
+$ ./hello.sh nixos
+hello, nixos
+\end{shellsession}
+
+逐行解释。第一行是 shebang，告诉内核用哪个解释器执行这个文件；\texttt{set -euo pipefail} 让脚本在三类错误上立即失败；\texttt{\$\{1:-world\}} 取第一个参数，缺省时用 \texttt{world}；\texttt{\$} 后接花括号可以避免变量名与后文粘连。
+
+不写 shebang 时，\texttt{./hello.sh} 会用当前 shell 执行，行为可能随环境变化。养成写第一行的习惯。
+
+\section{set -euo pipefail}
+
+这一行是三个开关。
+
+\begin{booktable}{\textwidth}{J{0.690} J{1.310}}
+\toprule
+开关 & 作用 \\
+\midrule
+\texttt{-e} & 任一条命令返回非零时立即退出 \\
+\texttt{-u} & 使用未定义变量时报错退出 \\
+\texttt{-o pipefail} & 管道中任一环节失败即视为失败 \\
+\bottomrule
+\end{booktable}
+
+\texttt{-e} 有例外：位于 \texttt{if} 条件、\texttt{\&\&} 或 \texttt{||} 之后的命令不会触发退出。这正是它适合脚本的原因：分支判断仍然可用，未预期的失败则立即终止。
+
+没有 \texttt{-o pipefail} 时，\texttt{a | b} 的退出码只看 \texttt{b}。\texttt{curl ... | tar -xz} 中如果 \texttt{curl} 失败，\texttt{tar} 仍可能成功解出一个空包，脚本继续往下跑。
+
+\section{变量与引号}
+
+\begin{shellsession}
+$ name="nixos lab"
+$ echo $name       # 被拆成两个词
+nixos lab
+$ echo "$name"     # 保持为一个词
+nixos lab
+$ echo '$name'     # 原样输出
+$name
+\end{shellsession}
+
+规则只有一条：变量用在字符串里时加双引号。不加引号时，值中的空格会被当作分词，路径里带空格就会出错。单引号内的内容不做任何展开。
+
+命令替换用 \texttt{\$(...)}，不要用反引号：
+
+\begin{shellsession}
+$ today=$(date +%F)
+$ echo "备份日期：$today"
+备份日期：2026-11-25
+\end{shellsession}
+
+\section{条件与退出码}
+
+\begin{shellsession}
+$ cat > check.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ -f /etc/nixos/configuration.nix ]]; then
+  echo "NixOS 配置存在"
+else
+  echo "不是 NixOS 系统" >&2
+  exit 1
+fi
+EOF
+$ bash check.sh
+NixOS 配置存在
+\end{shellsession}
+
+条件表达式用 \texttt{[[ ]]}，它比 \texttt{[ ]} 安全：变量不必加引号也不会因空格炸开。常用判断：
+
+\begin{booktable}{\textwidth}{J{0.769} J{1.231}}
+\toprule
+写法 & 含义 \\
+\midrule
+\texttt{[[ -f 路径 ]]} & 是普通文件 \\
+\texttt{[[ -d 路径 ]]} & 是目录 \\
+\texttt{[[ -z "\$var" ]]} & 字符串为空 \\
+\texttt{[[ "\$a" == "\$b" ]]} & 字符串相等 \\
+\texttt{[[ \$n -gt 10 ]]} & 数值比较 \\
+\bottomrule
+\end{booktable}
+
+错误信息写到标准错误（\texttt{>\&2}），正常结果写到标准输出。这样调用者可以把输出重定向到文件，同时仍在屏幕上看到错误。
+
+\section{循环}
+
+\begin{shellsession}
+$ for f in *.log; do
+>   echo "处理 $f"
+> done
+$ while read -r line; do
+>   echo "行：$line"
+> done < access.log
+\end{shellsession}
+
+遍历文件时不要解析 \texttt{ls} 的输出，文件名可能含空格与换行。用 \texttt{for f in *.log} 或 \texttt{find ... -print0 | xargs -0}。逐行读文件用 \texttt{while read -r}，\texttt{-r} 防止反斜杠被解释。
+
+\section{参数与用法}
+
+\begin{shellsession}
+$ cat > backup.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "用法：$0 <源目录> <目标目录>" >&2
+  exit 2
+}
+
+[[ $# -eq 2 ]] || usage
+src=$1
+dst=$2
+[[ -d $src ]] || { echo "源目录不存在：$src" >&2; exit 1; }
+
+mkdir -p "$dst"
+rsync -a --delete "$src"/ "$dst"/
+echo "已同步 $(find "$src" -type f | wc -l) 个文件到 $dst"
+EOF
+$ chmod +x backup.sh
+$ ./backup.sh ~/lab /tmp/lab-backup
+\end{shellsession}
+
+这段代码体现了脚本的三条实践：参数不足时打印用法并以非零码退出；对输入做前置检查；输出一句可核对的结果。\texttt{\$#} 是参数个数，\texttt{\$0} 是脚本自身的名字，\texttt{\$@} 是全部参数。
+
+\section{调试}
+
+\begin{shellsession}
+$ bash -n backup.sh        # 只做语法检查，不执行
+$ bash -x backup.sh a b    # 逐条打印执行的命令
+$ shellcheck backup.sh     # 静态检查（需安装）
+\end{shellsession}
+
+\texttt{bash -n} 适合放进提交前的检查。\texttt{bash -x} 的输出以 \texttt{+} 开头，能看到每个变量展开后的真实值，定位“为什么这个分支走进了”一类问题最快。\texttt{shellcheck} 能发现引号缺失、未使用变量、不可移植写法，建议在编辑器里接上。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 写一个脚本，接受一个目录，输出其中文件数与总大小。
+  \item 给 \texttt{backup.sh} 增加一个 \texttt{-{}-dry-run} 选项，此时只打印将要执行的 \texttt{rsync} 命令。
+  \item 写一个脚本，检查 \texttt{/nix} 的剩余空间，低于 10\% 时以非零码退出。
+  \item 用 \texttt{bash -x} 运行第 2 题的脚本，观察 \texttt{\$@} 的展开过程。
+  \item 用 \texttt{shellcheck} 检查前面所有脚本，修掉报告的每一处告警。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 写出带 shebang 与 \texttt{set -euo pipefail} 的脚本；
+  \item 说明三种引号的区别，知道何时必须加引号；
+  \item 用 \texttt{[[ ]]} 写条件，用退出码表达成功与失败；
+  \item 用 \texttt{for} 与 \texttt{while read} 遍历文件与行；
+  \item 用 \texttt{bash -n}、\texttt{bash -x}、\texttt{shellcheck} 调试脚本。
+\end{itemize}
+\end{checkpoint}

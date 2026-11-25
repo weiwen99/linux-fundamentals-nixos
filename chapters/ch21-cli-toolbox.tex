@@ -1,0 +1,122 @@
+\chapter{现代命令行工具箱}
+\chapterlead{过去十年出现了一批用 Rust 与 Go 重写的命令行工具。它们在默认行为上更接近人的预期，输出更适合屏幕阅读。本章按任务分组，每个工具给出一两个真实用法，并标注它替代的旧命令。}
+
+\section{起步：一次装好}
+
+\begin{nixcode}
+environment.systemPackages = with pkgs; [
+  ripgrep fd bat eza zoxide fzf
+  dust btop procs sd jq yq
+  git delta tldr hyperfine
+];
+\end{nixcode}
+
+装完不必立刻全部用上。挑三个替换掉最常用的旧命令，用一周形成习惯，再加下一批。
+
+\section{查找}
+
+\begin{shellsession}
+$ rg -n "stateVersion" /etc/nixos
+$ rg -t nix "mkIf" -A2
+$ fd -e nix -x wc -l
+$ fzf
+\end{shellsession}
+
+\texttt{rg} 替代 \texttt{grep -r}：默认递归、默认跳过版本控制忽略的路径、默认带行号。\texttt{-t nix} 按文件类型筛选，\texttt{-A2} 显示后两行。
+
+\texttt{fd} 替代 \texttt{find}：\texttt{fd -e nix} 查找后缀，\texttt{-x} 对每个结果执行命令。\texttt{fzf} 是模糊选择器，单独运行会列出当前目录的文件，输入片段即时过滤；它更常见的用法是接在管道里，与 \texttt{vim}、\texttt{cd} 组合。
+
+\begin{booktable}{\textwidth}{J{0.769} J{1.231}}
+\toprule
+旧命令 & 新命令 \\
+\midrule
+\texttt{grep -r} & \texttt{rg} \\
+\texttt{find . -name} & \texttt{fd} \\
+\texttt{locate} & \texttt{fd} 配合缓存 \\
+\bottomrule
+\end{booktable}
+
+\section{查看}
+
+\begin{shellsession}
+$ bat src/main.rs
+$ bat --diff notes.md
+$ eza -l --git --tree --level=2
+$ dust -d 2
+$ procs
+\end{shellsession}
+
+\texttt{bat} 替代 \texttt{cat}：语法高亮、行号、Git 修改标记。输出到管道时自动退化为纯文本，因此脚本里也能用。\texttt{eza} 替代 \texttt{ls}：图标、Git 状态、树状视图。\texttt{dust} 替代 \texttt{du}：以条形图显示各目录占用。\texttt{procs} 替代 \texttt{ps}：按 CPU 与内存排序，输出可读。
+
+\section{切换与跳转}
+
+\begin{shellsession}
+$ z proj              # 跳到最常访问的含 proj 的目录
+$ zi                  # 交互选择
+$ cd -                # 回到上一个目录
+\end{shellsession}
+
+\texttt{zoxide} 记录访问过的目录，按频次与最近使用排序，输入片段即可跳转。它与 \texttt{cd} 并存，不改变原有习惯。需要接入 shell：
+
+\begin{nixcode}
+programs.zoxide = {
+  enable = true;
+  enableZshIntegration = true;
+};
+\end{nixcode}
+
+\section{处理结构化数据}
+
+\begin{shellsession}
+$ jq '.services | keys' config.json
+$ jq -r '.items[] | select(.ok) | .name' report.json
+$ yq '.services.web.ports' compose.yaml
+$ jq -s 'group_by(.code) | map({code: .[0].code, n: length})' logs.jsonl
+\end{shellsession}
+
+\texttt{jq} 处理 JSON：\texttt{.} 取字段，\texttt{[]} 遍历数组，\texttt{select} 过滤。\texttt{yq} 用同一套语法处理 YAML 与 TOML。这两件工具把“看配置文件”变成可脚本化的操作。
+
+\section{比较与测量}
+
+\begin{shellsession}
+$ git diff | delta
+$ hyperfine --warmup 3 'rg foo .' 'grep -r foo .'
+$ tldr tar
+\end{shellsession}
+
+\texttt{delta} 让 \texttt{git diff} 并排显示并高亮，在 Git 配置里把 \texttt{core.pager} 设为 \texttt{delta} 即可全局生效。\texttt{hyperfine} 做基准测试，自动多次运行并给出统计区间，比 \texttt{time} 可靠。\texttt{tldr} 只给常用示例，适合想不起来参数时快速查。
+
+\section{什么时候不用新工具}
+
+三种情况下坚持用旧工具。
+
+第一，写脚本给别人跑。\texttt{grep}、\texttt{find}、\texttt{sed} 在任何系统上都有，\texttt{rg}、\texttt{fd} 需要额外安装。
+
+第二，系统故障时。救援环境里只有 busybox 与 coreutils，能用的是旧工具。
+
+第三，与协作方共享命令时。一条能在对方机器上直接执行的命令，比需要先装三个工具的命令更有用。
+
+\begin{toolswap}{du -sh *}{dust}
+两者统计的对象相同：\texttt{du -sh *} 按目录汇总，\texttt{dust} 用条形图排序显示。差别只在输出形式，因此个人使用换成 \texttt{dust}，写进脚本时保留 \texttt{du}。
+\end{toolswap}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{rg} 在当前仓库中找出所有含 \texttt{TODO} 的行，只显示文件名与行号。
+  \item 用 \texttt{fd -e nix -x wc -l} 统计每个 Nix 文件的行数，并按行数排序。
+  \item 用 \texttt{bat} 查看一个源码文件，再把它接到 \texttt{head} 后面，说明输出差异。
+  \item 用 \texttt{jq} 从一份 JSON 中取出所有 \texttt{name} 字段，每行一个。
+  \item 用 \texttt{hyperfine} 比较 \texttt{rg} 与 \texttt{grep -r} 在同一目录下的耗时，记录数值与差异倍数。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 按任务类别说出八个常用替代工具及其旧命令；
+  \item 用 \texttt{rg}、\texttt{fd}、\texttt{bat}、\texttt{eza} 完成日常查找与查看；
+  \item 用 \texttt{jq} 与 \texttt{yq} 从结构化数据中取值；
+  \item 用 \texttt{hyperfine} 做可重复的性能比较；
+  \item 判断什么时候应当继续使用旧工具。
+\end{itemize}
+\end{checkpoint}

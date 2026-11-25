@@ -1,18 +1,18 @@
 \begin{titlepage}
 \thispagestyle{empty}
-\vspace*{26mm}
+\ifbknarrow\vspace*{10mm}\else\vspace*{26mm}\fi
 {\small\color{muted}\booktitleen\ \ \textperiodcentered\ \ \booksubtitleen\par}
-\vspace{16mm}
-{\fontsize{40}{48}\selectfont\bfseries\color{ink}\booktitle\par}
+\ifbknarrow\vspace{8mm}\else\vspace{16mm}\fi
+{\ifbknarrow\fontsize{22}{26}\else\fontsize{40}{48}\fi\selectfont\bfseries\color{ink}\booktitle\par}
 \vspace{3mm}
-{\fontsize{22}{30}\selectfont\color{ink}\booksubtitle\par}
-\vspace{12mm}
-{\color{rule}\rule{72mm}{0.6pt}\par}
-\vspace{12mm}
-{\large\color{muted}写给第一次认真使用 Linux 的人\par}
+{\ifbknarrow\fontsize{13}{17}\else\fontsize{22}{30}\fi\selectfont\color{ink}\booksubtitle\par}
+\ifbknarrow\vspace{7mm}\else\vspace{12mm}\fi
+{\color{rule}\noindent\rule{0.86\linewidth}{0.6pt}\par}
+\ifbknarrow\vspace{7mm}\else\vspace{12mm}\fi
+{\ifbknarrow\normalsize\else\large\fi\color{muted}写给第一次认真使用 Linux 的人\par}
 \vfill
 {\small\color{muted}\bookauthor\par}
 \vspace{2mm}
 {\small\color{muted}\bookdate\ \ \textperiodcentered\ \ \bookedition\par}
-\vspace{18mm}
+\ifbknarrow\vspace{5mm}\else\vspace{18mm}\fi
 \end{titlepage}
