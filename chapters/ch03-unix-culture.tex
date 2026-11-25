@@ -47,6 +47,11 @@ $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
   \node[lbl, above=1.5mm of d] {计数};
   \node[lbl, above=1.5mm of e] {按次数};
   \node[lbl, above=1.5mm of f] {取前五};
+  % 图例放在轴下方，避免与年份标签重叠
+  \foreach \i/\c/\t in {0/plum/起源, 1/teal/自由软件与内核, 2/ochre/发行版, 3/sage/可复现} {
+    \fill[\c] (30+\i*32,-9) rectangle ++(3,-3);
+    \node[right=1mm, font=\sffamily\scriptsize, text=muted] at (33+\i*32,-10.5) {\t};
+  }
 \end{tikzpicture}
 \caption{一条管道。每个方框是一个独立程序，竖线负责搬运数据。}
 \end{figure}
@@ -194,20 +199,27 @@ Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙�
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\scriptsize, x=1mm, y=1mm]
-  \draw[rule, line width=0.8pt] (12,0) -- (148,0);
-  \foreach \x/\year in {12/1969, 34/1973, 61/1983, 82/1991, 100/1993, 122/2003, 146/今天} {
-    \draw[ink, line width=1pt] (\x,-1.5) -- (\x,1.5);
-    \node[above=1.5mm, text=ink, font=\sffamily\bfseries\scriptsize] at (\x,1.5) {\year};
+  % 四段底色：起源、自由软件与内核、发行版、可复现部署
+  \draw[plum!55, line width=2.4pt] (12,0) -- (34,0);
+  \draw[teal!55, line width=2.4pt] (34,0) -- (82,0);
+  \draw[ochre!65, line width=2.4pt] (82,0) -- (122,0);
+  \draw[sage!65, line width=2.4pt] (122,0) -- (148,0);
+  \foreach \x/\year/\era in {%
+    12/1969/plum, 34/1973/plum, 61/1983/teal, 82/1991/teal,
+    100/1993/ochre, 122/2003/ochre, 146/今天/sage} {
+    \draw[ink, line width=0.8pt] (\x,-1.6) -- (\x,1.4);
+    \fill[\era] (\x,0) circle (1.3mm);
+    \node[above=1.8mm, text=ink, font=\sffamily\bfseries\scriptsize] at (\x,1.6) {\year};
   }
-  \node[below=2mm, align=center, text width=20mm] at (12,-1.5) {Unix\\ 贝尔实验室};
-  \node[below=2mm, align=center, text width=20mm] at (34,-1.5) {用 C 重写\\ 可移植};
-  \node[below=2mm, align=center, text width=20mm] at (61,-1.5) {GNU 项目\\ 自由软件};
-  \node[below=2mm, align=center, text width=20mm] at (82,-1.5) {Linux\\ 内核};
-  \node[below=2mm, align=center, text width=20mm] at (100,-1.5) {Debian\\ 社区发行版};
-  \node[below=2mm, align=center, text width=20mm] at (122,-1.5) {Nix\\ 可复现部署};
-  \node[below=2mm, align=center, text width=20mm] at (146,-1.5) {NixOS\\ 你现在用的};
+  \node[below=2mm, align=center, text width=20mm] at (12,-1.6) {Unix\\ 贝尔实验室};
+  \node[below=2mm, align=center, text width=20mm] at (34,-1.6) {用 C 重写\\ 可移植};
+  \node[below=2mm, align=center, text width=20mm] at (61,-1.6) {GNU 项目\\ 自由软件};
+  \node[below=2mm, align=center, text width=20mm] at (82,-1.6) {Linux\\ 内核};
+  \node[below=2mm, align=center, text width=20mm] at (100,-1.6) {Debian\\ 社区发行版};
+  \node[below=2mm, align=center, text width=20mm] at (122,-1.6) {Nix\\ 可复现部署};
+  \node[below=2mm, align=center, text width=20mm] at (146,-1.6) {NixOS\\ 你现在用的};
 \end{tikzpicture}
-\caption{从 Unix 到 NixOS。每一代都在回答同一个问题：怎么让软件可靠地装上去、跑起来、还能撤回来。}
+\caption{从 Unix 到 NixOS。四种颜色对应四个阶段：起源、自由软件与内核、发行版、可复现部署。每一代都在回答同一个问题：怎么让软件可靠地装上去、跑起来、还能撤回来。}
 \end{figure}
 
 1969 年，贝尔实验室的肯·汤普森和丹尼斯·里奇写了一个小操作系统，取名 Unix。它的几个决定影响了后来一切：一切皆为文件、小工具组合、用纯文本做接口。
