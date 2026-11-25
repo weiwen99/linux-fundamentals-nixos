@@ -1,90 +1,85 @@
-\chapter{Unix 文化：工具为什么长这样}
-\chapterlead{学 Linux 最容易犯的错，是把它当成一套要背的命令。它更像一套约定：每个工具只做一件小事，把事情说给下一个工具听。这一章先让你亲手拼出一条命令，再解释这些约定从哪来、为什么值得遵守。}
+\chapter{Unix 的工具传统}
+\chapterlead{命令行工具的形态由一组四十年前形成的约定决定：单个工具只做一件事，工具之间用文本流连接，成功时不输出，配置放在固定位置。本章先用一条管道演示这些约定的作用，再说明它们的来源与维护方式。}
 
-\section{十分钟上手：把四个小工具接起来}
+\section{起步：一条管道的构成}
 
-打开终端，输入下面这一行，回车。
+在终端中执行下列一行。
 
-\begin{bashcode}
+\begin{shellsession}
 $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
    87 ls
    61 cd
    42 vim
    29 git
    18 systemctl
-\end{bashcode}
+\end{shellsession}
 
-输出因机器而异，但形态一样：左边是次数，右边是你输入过的命令。这一行由六个程序接力完成，每个只负责一件事。
+输出左侧是出现次数，右侧是输入过的命令。这一行由六个程序依次处理同一批数据，每个程序只承担一个步骤。
 
 \begin{itemize}
-  \item \texttt{history}：打印你输入过的命令，一行一条。
-  \item \texttt{cut -d' ' -f2-}：按空格切开每一行，从第二段取到末尾，去掉行首的序号。\texttt{-d} 后面引号里的那一个空格就是分隔符，少了它整条命令的结果会完全不同。
-  \item \texttt{sort}：按字典序排列，把相同的行排到一起。
-  \item \texttt{uniq -c}：把相邻的重复行合并，并在前面写上出现次数。
-  \item \texttt{sort -rn}：按数字从大到小再排一次。
-  \item \texttt{head -5}：只取前五行。
+  \item \texttt{history}：输出命令历史，一行一条，行首带序号。
+  \item \texttt{cut -d' ' -f2-}：以空格为分隔符，从第二段取到行尾，去掉序号。\texttt{-d} 后引号内的一个空格即为分隔符；省略它，整条命令的结果会完全不同。
+  \item \texttt{sort}：按字典序排列，使相同的行相邻。
+  \item \texttt{uniq -c}：合并相邻的重复行，并在行首写入出现次数。
+  \item \texttt{sort -rn}：按数值从大到小重新排序。
+  \item \texttt{head -5}：只输出前五行。
 \end{itemize}
 
-竖线叫做管道（pipe）。它把左边程序的输出，直接接到右边程序的输入。没有人写过一个叫“统计我最常用命令”的程序，这条命令是六个通用工具临时拼出来的。
+竖线称为管道（pipe），作用是把左侧程序的标准输出接到右侧程序的标准输入。系统中没有名为“统计常用命令”的程序；结果是六个通用工具在一条命令中组合出来的。
 
 \begin{figure}[H]
 \centering
-\begin{tikzpicture}[font=\sffamily\footnotesize,
-  cmd/.style={draw=teal!60, fill=teal!7, rounded corners=1pt,
-              inner sep=5pt, text=teal!85, font=\ttfamily\footnotesize, anchor=west},
-  dat/.style={draw=rule, fill=paper, rounded corners=1pt,
-              inner sep=5pt, font=\ttfamily\footnotesize, text=ink!90, anchor=west},
-  arr/.style={-{Latex[length=1.4mm]}, teal, thick},
-  note/.style={font=\sffamily\footnotesize, text=muted, anchor=west}]
+\begin{tikzpicture}[font=\normalsize,
+  cmd/.style={draw=teal!60, fill=teal!7, rounded corners=1.5pt,
+              inner sep=6pt, text=teal!85, font=\ttfamily\normalsize, anchor=west},
+  dat/.style={draw=rule, fill=paper, rounded corners=1.5pt,
+              inner sep=6pt, font=\ttfamily\normalsize, text=ink!90, anchor=west},
+  arr/.style={-{Latex[length=1.6mm]}, teal, thick},
+  note/.style={font=\small, text=muted, anchor=west}]
 
-  % 六个阶段：左列是命令，右列是此刻流过的数据
   \node[cmd] (c1) at (0,0)      {history};
-  \node[dat] (d1) at (44mm,0)   {\ \ 512\ \ ls -la};
-  \node[note] at (44mm,-4.2mm) {每行一条你输入过的命令，前面带序号};
+  \node[dat] (d1) at (62mm,0)   {\ \ 512\ \ ls -la};
+  \node[note] at (62mm,-7mm) {每行一条命令，行首带序号};
 
-  \node[cmd] (c2) at (0,-14mm)  {cut -d' ' -f2-};
-  \node[dat] (d2) at (46mm,-17mm) {ls -la};
-  \node[note] at (46mm,-21.6mm) {按空格切段，取第二段到行尾，去掉序号};
+  \node[cmd] (c2) at (0,-22mm)  {cut -d' ' -f2-};
+  \node[dat] (d2) at (62mm,-22mm) {ls -la};
+  \node[note] at (62mm,-29mm) {按空格切段，取第二段到行尾};
 
-  \node[cmd] (c3) at (0,-28mm)  {sort};
-  \node[dat] (d3) at (46mm,-34mm) {cd / vim / ls -la / ls};
-  \node[note] at (46mm,-38.6mm) {按字典序排，相同的行挨到一起};
+  \node[cmd] (c3) at (0,-44mm)  {sort};
+  \node[dat] (d3) at (62mm,-44mm) {cd / vim / ls -la / ls};
+  \node[note] at (62mm,-51mm) {按字典序排列，相同的行相邻};
 
-  \node[cmd] (c4) at (0,-42mm)  {uniq -c};
-  \node[dat] (d4) at (46mm,-51mm) {\ \ 61 cd\ \ \ \ 87 ls};
-  \node[note] at (46mm,-55.6mm) {相邻的重复行合并成一行，前面加计数};
+  \node[cmd] (c4) at (0,-66mm)  {uniq -c};
+  \node[dat] (d4) at (62mm,-66mm) {\ \ 61 cd\ \ \ \ 87 ls};
+  \node[note] at (62mm,-73mm) {相邻重复行合并，行首加计数};
 
-  \node[cmd] (c5) at (0,-56mm)  {sort -rn};
-  \node[dat] (d5) at (46mm,-68mm) {\ \ 87 ls\ \ \ \ 61 cd};
-  \node[note] at (46mm,-72.6mm) {按数字从大到小重排};
+  \node[cmd] (c5) at (0,-88mm)  {sort -rn};
+  \node[dat] (d5) at (62mm,-88mm) {\ \ 87 ls\ \ \ \ 61 cd};
+  \node[note] at (62mm,-95mm) {按数值从大到小重排};
 
-  \node[cmd] (c6) at (0,-70mm)  {head -5};
-  \node[dat] (d6) at (46mm,-85mm) {前五行，就是最常用的五条};
-  \node[note] at (46mm,-89.6mm) {截断输出，后面的不再显示};
+  \node[cmd] (c6) at (0,-110mm)  {head -5};
+  \node[dat] (d6) at (62mm,-110mm) {最常用的五条命令};
+  \node[note] at (62mm,-117mm) {截断输出};
 
   \foreach \a/\b in {c1/c2,c2/c3,c3/c4,c4/c5,c5/c6} {
     \draw[arr] (\a.south) -- (\b.north);
   }
-  % 数据列之间的虚线：表示这些值一路流过去
-  \foreach \a/\b in {d1/d2,d2/d3,d3/d4,d4/d5,d5/d6} {
-    \draw[rule, dashed] (\a.south) -- (\b.north);
-  }
 \end{tikzpicture}
-\caption{一条管道里的六步。左边是程序，右边是它在那一刻看到的数据。每一步只做一件小事，串起来就完成了“统计我最常用的命令”这个没人专门写过程序的任务。}
+\caption{一条管道中的六个步骤。左列是程序，右列是该步骤看到的数据}
 \end{figure}
 
 \section{一切皆为文件}
 
-Unix 有一个影响深远的设计：尽量用“文件”这一个概念，去代表所有可以被读写的东西。
+Unix 的一项设计决策是把“文件”作为统一的读写对象。
 
 \begin{itemize}
   \item 磁盘上的文档是文件。
-  \item 键盘和屏幕在 \texttt{/dev} 下有对应的设备文件。
-  \item 正在运行的进程信息在 \texttt{/proc} 下，一个进程一个目录。
-  \item 内核参数、硬件状态、随机数，都挂在某个路径下。
+  \item 键盘与屏幕在 \texttt{/dev} 下有对应的设备文件。
+  \item 运行中进程的信息在 \texttt{/proc} 下，一个进程一个目录。
+  \item 内核参数、硬件状态、随机数都挂在某个路径下。
 \end{itemize}
 
-好处是，你只要学会一套读写文件的动作，就能操作几乎所有东西。程序不需要为“读磁盘”“读传感器”“读另一个程序的状态”各写一套接口。
+采用统一界面后，读写文件的动作可以操作几乎所有资源，程序不必为“读磁盘”“读传感器”“读另一进程的状态”分别实现接口。
 
 每个运行中的程序默认打开三个通道。
 
@@ -92,131 +87,130 @@ Unix 有一个影响深远的设计：尽量用“文件”这一个概念，去
 \small
 \begin{tabularx}{\textwidth}{L{2.4cm} L{1.4cm} L{2.4cm} X}
 \toprule
-\textsf{名称} & \textsf{编号} & \textsf{默认去向} & \textsf{用途} \\
+名称 & 编号 & 默认去向 & 用途 \\
 \midrule
 标准输入 & 0 & 键盘 & 程序从这里读数据 \\
 标准输出 & 1 & 终端 & 程序的正常结果 \\
-标准错误 & 2 & 终端 & 错误和警告 \\
+标准错误 & 2 & 终端 & 错误与警告 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-重定向就是改变这三个通道的去向。下面几行是日常最常用的形式。
+重定向用于改变这三个通道的去向。
 
-\begin{bashcode}
-$ ls > files.txt          # 标准输出写进文件，屏幕上什么都不显示
+\begin{shellsession}
+$ ls > files.txt          # 标准输出写入文件，屏幕不显示
 $ echo note >> files.txt  # 追加，不覆盖
-$ make 2> build.err       # 只把错误信息存进文件
-$ ./run.sh > out.log 2>&1 # 正常与错误都写进同一份日志
-$ wc -l < files.txt       # 从文件读输入，而不是从键盘
-\end{bashcode}
+$ make 2> build.err       # 只把错误信息写入文件
+$ ./run.sh > out.log 2>&1 # 正常输出与错误写入同一文件
+$ wc -l < files.txt       # 输入来自文件，不再来自键盘
+\end{shellsession}
 
-管道只连接标准输出。如果左边程序报错，错误信息仍然直接出现在屏幕上，不会流进右边的程序。这一点在排查问题时很有用：你能立刻分清“没结果”和“出错了”。
+管道只连接标准输出。左侧程序报错时，错误信息仍直接出现在终端，不进入右侧程序。排查问题时可据此区分“没有结果”与“执行失败”。
 
-\section{沉默是金，退出码是话}
+\section{退出码与静默输出}
 
-Unix 工具有一条不成文的规矩：成功时不说话。
+不输出是 Unix 工具的通用行为：命令成功时通常不打印任何内容。
 
-\begin{bashcode}
+\begin{shellsession}
 $ mkdir demo
 $
-\end{bashcode}
+\end{shellsession}
 
-\texttt{mkdir} 建好目录后什么都不打印。这不是冷漠，而是为了组合：一个不说话的程序，输出可以直接喂给下一个程序；如果它每次都打印“目录已创建”，管道里就全是噪音。
+这是为了保证可组合性。若每个命令成功时都输出“已创建”“已完成”，管道中会充满与结果无关的文本。
 
-那怎么知道成功没有？看退出码。
+命令是否成功由退出码表示。
 
-\begin{bashcode}
+\begin{shellsession}
 $ mkdir demo; echo $?
 0
 $ mkdir /root/nope; echo $?
 mkdir: cannot create directory '/root/nope': Permission denied
 1
-\end{bashcode}
+\end{shellsession}
 
-0 表示成功，非 0 表示失败——具体数字由程序定义，但“非零即失败”是通用约定。shell 还能根据退出码决定要不要继续。
+0 表示成功，非 0 表示失败；具体数值由各程序定义，“非零即失败”是通用约定。shell 可以依据退出码决定是否继续执行。
 
-\begin{bashcode}
+\begin{shellsession}
 $ ./build.sh && ./deploy.sh   # 前一条成功才执行后一条
-$ ./check.sh || echo "检查没通过"
-\end{bashcode}
+$ ./check.sh || echo "检查未通过"
+\end{shellsession}
 
-写脚本时，这个约定会变成你的安全网。第十章会讲 \texttt{set -euo pipefail}：让脚本遇到任何一步失败就停下，而不是带着错误继续往前跑。
+脚本依赖这一约定判断流程是否中断。第十章说明 \texttt{set -euo pipefail} 的作用：使脚本在任一步失败时停止，而不是带着错误继续执行。
 
-\section{约定优于配置}
+\section{固定约定}
 
-Unix 程序很少要求你写配置文件才能用。绝大多数行为有合理默认值，需要改的时候才改。配套的是一批固定约定，学会一次，处处适用。
+Unix 程序通常不需要配置文件即可运行，默认值覆盖多数场景。与之配套的是一组固定约定。
 
 \begin{itemize}
-  \item \textbf{帮助开关}：几乎每个命令都接受 \texttt{-{}-help}，多数还接受 \texttt{-h}。
-  \item \textbf{长短选项}：\texttt{-v} 和 \texttt{-{}-verbose} 通常是一回事，短选项为了打字，长选项为了可读。
+  \item \textbf{帮助开关}：几乎每个命令都接受 \texttt{-{}-help}，多数接受 \texttt{-h}。
+  \item \textbf{长短选项}：\texttt{-v} 与 \texttt{-{}-verbose} 通常等价，短选项用于输入，长选项用于阅读。
   \item \textbf{版本}：\texttt{-{}-version}。
-  \item \textbf{干跑}：\texttt{-{}-dry-run}，只报告将要做什么，不真的执行。危险操作前先用它。
-  \item \textbf{用户配置}：放在 \texttt{\textasciitilde/.config/} 下，一个程序一个目录。
-  \item \textbf{系统配置}：放在 \texttt{/etc/} 下，文件名通常就是程序名。
-  \item \textbf{日志}：交给系统统一管理，而不是各自往自己目录里写文件。
+  \item \textbf{试运行}：\texttt{-{}-dry-run}，报告将要执行的操作而不实际执行。危险操作前应先运行一次。
+  \item \textbf{用户配置}：位于 \texttt{\textasciitilde/.config/} 下，一个程序一个目录。
+  \item \textbf{系统配置}：位于 \texttt{/etc/} 下，文件名通常与程序名相同。
+  \item \textbf{日志}：由系统统一管理，不由各程序自行保存在私有目录。
 \end{itemize}
 
-\texttt{\textasciitilde} 表示你的家目录。\texttt{/etc} 存放系统级配置，\texttt{/var} 存放会变化的数据，\texttt{/usr} 存放程序与只读资源。这套目录布局叫文件系统层次标准（FHS），第五章会细讲。
+\texttt{\textasciitilde} 表示家目录。\texttt{/etc} 存放系统级配置，\texttt{/var} 存放变化的数据，\texttt{/usr} 存放程序与只读资源。这套布局称为文件系统层次标准（FHS），第五章详述。
 
 \begin{culturenote}
-这套约定不是审美偏好，而是为了让陌生人能猜。一个从没见过的命令，你大概能猜到它有 \texttt{-{}-help}、有 \texttt{-{}-dry-run}、配置文件在 \texttt{/etc} 或 \texttt{\textasciitilde/.config}。可猜，就意味着不必每次都查文档。
+这些约定的作用是让使用者能够推测。面对一个未见过的命令，可以预期它有 \texttt{-{}-help}、支持 \texttt{-{}-dry-run}、配置文件位于 \texttt{/etc} 或 \texttt{\textasciitilde/.config}。可推测意味着不必每次查阅文档。
 \end{culturenote}
 
-\section{手册页：最被低估的文档}
+\section{手册页}
 
-\texttt{man} 是系统自带的手册。它不联网，不依赖浏览器，服务器上一定存在。
+\texttt{man} 是随系统分发的手册，不依赖网络与浏览器，服务器上必然存在。
 
-\begin{bashcode}
-$ man tar          # 看 tar 的完整手册
-$ man 5 passwd     # 看第 5 节：配置文件的格式
-$ man -k compress  # 按关键词搜索所有手册
-$ tldr tar         # 只想要几个例子时（需要先安装）
-\end{bashcode}
+\begin{shellsession}
+$ man tar          # tar 的完整手册
+$ man 5 passwd     # 第 5 节：配置文件格式
+$ man -k compress  # 按关键词搜索全部手册
+$ tldr tar         # 只看常用示例（需另行安装）
+\end{shellsession}
 
-手册分成若干节，同一个名字可能出现在多节里。第 1 节是命令，第 5 节是文件格式，第 8 节是系统管理命令。\texttt{man 5 passwd} 和 \texttt{man passwd} 讲的是两件不同的事。
+手册分为若干节，同一名称可能出现在多节中。第 1 节是命令，第 5 节是文件格式，第 8 节是系统管理命令。\texttt{man 5 passwd} 与 \texttt{man passwd} 的内容不同。
 
-打开之后，用 \texttt{/关键词} 搜索，\texttt{n} 跳到下一个匹配，\texttt{q} 退出。前十分钟只需要记住这三件事。
+进入手册后，\texttt{/关键词} 搜索，\texttt{n} 跳至下一处匹配，\texttt{q} 退出。
 
-一份写得好的手册通常按这个顺序组织：名称、用法概要、描述、选项、示例、相关文件、已知问题。新手最常犯的错是从头读到尾；正确的读法是先看示例，再回来看选项。
+手册的常规结构为：名称、用法概要、描述、选项、示例、相关文件、已知问题。有效的读法是从示例入手，再回查选项，不按顺序通读。
 
 \begin{lab}[练习：用三种方式查同一件事]
 \begin{enumerate}
-  \item 运行 \texttt{tar -{}-help}，找到“解压到指定目录”用哪个选项。
-  \item 运行 \texttt{man tar}，用 \texttt{/extract} 搜索，找到同一个选项的完整说明。
-  \item 运行 \texttt{man -k "disk usage"}，看看系统里还有哪些和磁盘占用有关的命令。
+  \item 运行 \texttt{tar -{}-help}，找到“解压到指定目录”对应的选项。
+  \item 运行 \texttt{man tar}，用 \texttt{/extract} 搜索，找到同一选项的完整说明。
+  \item 运行 \texttt{man -k "disk usage"}，列出与本机磁盘占用相关的命令。
 \end{enumerate}
-三种方式回答的是同一个问题，但详细程度和可读性不同。日常先用 \texttt{-{}-help}，不够再看 \texttt{man}。
+三种方式回答同一问题，详细程度不同。日常先用 \texttt{-{}-help}，不足时再查 \texttt{man}。
 \end{lab}
 
-\section{社区：怎么问，怎么报}
+\section{提问与缺陷报告}
 
-Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙。这个社区有一套运行了几十年的礼节，核心只有一条：让别人能复现你的问题。
+Linux 的工具由社区维护。使用中会遇到缺陷，也需要他人协助。社区沿用的规则可以概括为一条：让他人能够复现问题。
 
-一份合格的 bug 报告包含五样东西。
+一份可用的缺陷报告包含五项内容。
 
 \begin{enumerate}
-  \item \textbf{环境}：发行版与版本、内核版本、软件版本。NixOS 上还要给出配置片段。
-  \item \textbf{步骤}：从干净状态开始，一步一步能重放的命令。
-  \item \textbf{期望}：你认为应该发生什么。
-  \item \textbf{实际}：真的发生了什么，包括完整报错。
+  \item \textbf{环境}：发行版与版本、内核版本、软件版本。NixOS 上还需给出相关配置片段。
+  \item \textbf{步骤}：从干净状态开始，能够逐步重放的命令。
+  \item \textbf{预期}：按文档应当出现的结果。
+  \item \textbf{实际}：实际出现的结果，包含完整报错。
   \item \textbf{证据}：日志、截图、\texttt{-{}-version} 的输出。
 \end{enumerate}
 
-反过来，提问时最容易被忽略的是“我已经试过什么”。这不是为了证明你努力过，而是为了让回答的人不必重复你已经排除的方向。
+提问时容易被省略的一项是“已经尝试过的排查”。它的作用是避免回答者重复已被排除的方向。这部分内容不承担其他作用。
 
 \begin{culturenote}
-“RTFM”（去读手册）听起来傲慢，但它背后是一个事实：绝大多数问题在手册、\texttt{-{}-help}、日志里已经有答案。先查，再问，是对彼此时间的尊重。这条规矩在 AI 时代没有失效——Agent 也会读文档，你给的上下文越准确，它答得越好。
+社区中的“RTFM”（去读手册）常被视为不友好，但它指向一个事实：多数问题在手册、\texttt{-{}-help} 与日志中已有答案。先查证再提问，节省的是双方的时间。这条规则在 AI 时代同样适用：Agent 也依赖文档，提供的上下文越准确，得到的回答越可靠。
 \end{culturenote}
 
-\section{一条时间线}
+\section{时间线}
 
-这些约定不是一次设计出来的，是几十年里一层层长出来的。
+这些约定在几十年中逐层累积形成。
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[font=\sffamily\footnotesize, x=1mm, y=1mm]
-  % 四段底色：起源、自由软件与内核、发行版、可复现部署
+\begin{tikzpicture}[font=\footnotesize, x=1mm, y=1mm]
   \draw[plum!55, line width=2.4pt] (12,0) -- (34,0);
   \draw[teal!55, line width=2.4pt] (34,0) -- (82,0);
   \draw[ochre!65, line width=2.4pt] (82,0) -- (122,0);
@@ -226,7 +220,7 @@ Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙�
     100/1993/ochre, 122/2003/ochre, 146/今天/sage} {
     \draw[ink, line width=0.8pt] (\x,-1.6) -- (\x,1.4);
     \fill[\era] (\x,0) circle (1.3mm);
-    \node[above=1.8mm, text=ink, font=\sffamily\bfseries\scriptsize] at (\x,1.6) {\year};
+    \node[above=1.8mm, text=ink, font=\bfseries\scriptsize] at (\x,1.6) {\year};
   }
   \node[below=2mm, align=center, text width=20mm] at (12,-1.6) {Unix\\ 贝尔实验室};
   \node[below=2mm, align=center, text width=20mm] at (34,-1.6) {用 C 重写\\ 可移植};
@@ -234,25 +228,29 @@ Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙�
   \node[below=2mm, align=center, text width=20mm] at (82,-1.6) {Linux\\ 内核};
   \node[below=2mm, align=center, text width=20mm] at (100,-1.6) {Debian\\ 社区发行版};
   \node[below=2mm, align=center, text width=20mm] at (122,-1.6) {Nix\\ 可复现部署};
-  \node[below=2mm, align=center, text width=20mm] at (146,-1.6) {NixOS\\ 你现在用的};
+  \node[below=2mm, align=center, text width=20mm] at (146,-1.6) {NixOS};
+  \foreach \i/\c/\t in {0/plum/起源, 1/teal/自由软件与内核, 2/ochre/发行版, 3/sage/可复现} {
+    \fill[\c] (30+\i*32,-9) rectangle ++(3,-3);
+    \node[right=1mm, font=\scriptsize, text=muted] at (33+\i*32,-10.5) {\t};
+  }
 \end{tikzpicture}
-\caption{从 Unix 到 NixOS。四种颜色对应四个阶段：起源、自由软件与内核、发行版、可复现部署。每一代都在回答同一个问题：怎么让软件可靠地装上去、跑起来、还能撤回来。}
+\caption{从 Unix 到 NixOS。四种颜色对应四个阶段，每一代都在解决同一类问题：软件的安装、升级、回滚与环境复现}
 \end{figure}
 
-1969 年，贝尔实验室的肯·汤普森和丹尼斯·里奇写了一个小操作系统，取名 Unix。它的几个决定影响了后来一切：一切皆为文件、小工具组合、用纯文本做接口。
+1969 年，贝尔实验室的肯·汤普森与丹尼斯·里奇编写了一个小型操作系统，取名 Unix。它的三项决定影响了后续所有系统：以文件为统一接口、以小工具组合完成任务、以纯文本作为程序间的数据格式。
 
-1973 年，Unix 用 C 语言重写。这意味着操作系统可以移植到不同硬件上，也意味着系统代码普通人读得懂、改得动。
+1973 年，Unix 用 C 语言重写。操作系统因此可以移植到不同硬件，系统代码也成为普通人可读、可改的文本。
 
-1983 年，理查德·斯托曼发起 GNU 项目，要写一套自由的操作系统。今天你用的 \texttt{ls}、\texttt{grep}、\texttt{sed}、\texttt{bash}，大多来自 GNU。
+1983 年，理查德·斯托曼发起 GNU 项目，目标是编写一套自由的操作系统。今天使用的 \texttt{ls}、\texttt{grep}、\texttt{sed}、\texttt{bash} 多数来自 GNU。
 
-1991 年，林纳斯·托瓦兹发布了 Linux 内核。GNU 的工具加上 Linux 内核，才有了今天说的“Linux 系统”。
+1991 年，林纳斯·托瓦兹发布 Linux 内核。GNU 工具与 Linux 内核结合，形成通常所说的 Linux 系统。
 
-1993 年，Debian 项目开始，把“社区维护的发行版”这件事做成了长期工程。
+1993 年，Debian 项目启动，把“由社区长期维护的发行版”变成可持续的工程。
 
-2003 年，Nix 的论文发表，提出用函数式的方法描述软件部署：每个包有唯一的哈希路径，环境由表达式计算出来，而不是靠安装顺序累积。NixOS 是这套想法的完整实现。
+2003 年，Nix 的论文发表，提出用函数式方法描述软件部署：每个包拥有唯一的哈希路径，环境由表达式计算得出，不依赖安装顺序。NixOS 是这一思路的完整实现。
 
 \begin{culturenote}
-看懂这条线，你会发现所谓“新技术”大多在解决老问题：怎么装、怎么升级、怎么回滚、怎么让别人复现你的环境。NixOS 不是异类，它是这条线上对“可复现”最认真的一次尝试。
+这条时间线上的每一代都在处理同一组问题：如何安装、如何升级、如何回滚、如何让他人复现相同环境。NixOS 不是例外，它是在“可复现”这一目标上走得最远的一次尝试。
 \end{culturenote}
 
 \section{旧工具与新工具}
@@ -261,45 +259,45 @@ Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙�
 \small
 \begin{tabularx}{\textwidth}{L{3.4cm} L{2.6cm} X}
 \toprule
-\textsf{旧工具} & \textsf{新工具} & \textsf{新在哪里} \\
+旧工具 & 新工具 & 差异 \\
 \midrule
-\texttt{grep -r} & \texttt{rg} & 默认递归、默认忽略无关文件、默认带行号与颜色 \\
-\texttt{find} & \texttt{fd} & 语法更短，默认忽略隐藏目录与 \texttt{.gitignore} \\
-\texttt{cat} & \texttt{bat} & 带语法高亮与行号，长文件自动分页 \\
-\texttt{ls} & \texttt{eza} & 彩色、图标、树状视图、Git 状态 \\
-\texttt{sed -i} & \texttt{sd} & 正则语法更接近主流，替换前可预览 \\
-\texttt{du -sh} & \texttt{dust} & 用条形图显示目录占用 \\
-\texttt{top} & \texttt{btop} & 彩色界面、鼠标可用、指标更全 \\
-\texttt{man} & \texttt{tldr} & 只给最常见的几个例子 \\
-\texttt{diff} & \texttt{delta} & 并排显示、语法高亮，配合 Git 使用 \\
+\texttt{grep -r} & \texttt{rg} & 默认递归，默认忽略无关文件，默认输出行号与颜色 \\
+\texttt{find} & \texttt{fd} & 语法更短，默认忽略隐藏目录与 \texttt{.gitignore} 中的路径 \\
+\texttt{cat} & \texttt{bat} & 语法高亮与行号，长文件自动分页 \\
+\texttt{ls} & \texttt{eza} & 颜色、图标、树状视图、Git 状态 \\
+\texttt{sed -i} & \texttt{sd} & 正则语法接近主流写法，替换前可预览 \\
+\texttt{du -sh} & \texttt{dust} & 以条形图显示目录占用 \\
+\texttt{top} & \texttt{btop} & 彩色界面，支持鼠标，指标更完整 \\
+\texttt{man} & \texttt{tldr} & 只列常用示例 \\
+\texttt{diff} & \texttt{delta} & 并排显示与语法高亮，可配合 Git 使用 \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
 \begin{toolswap}{grep -rn "TODO" .}{rg -n TODO}
-\texttt{rg} 不需要 \texttt{-r}，默认就递归；不需要排除 \texttt{node\_modules}，默认读 \texttt{.gitignore}；行号和文件名是默认输出。第一次用会觉得“少了点什么”，用一周就回不去了。
+\texttt{rg} 不需要 \texttt{-r}，默认递归；不需要排除 \texttt{node\_modules}，默认遵循 \texttt{.gitignore}；文件名与行号是默认输出。
 \end{toolswap}
 
-这些工具都不是必需品。学它们的正确方式是：先用旧工具把事做完，等你被某一步烦到第三次，再换新工具。顺序反过来，你会花很多时间配置工具，而不是解决问题。
+这些工具都不是必需组件。合理的使用顺序是：先用旧工具完成任务，当同一环节第三次造成麻烦时，再替换为新工具。顺序颠倒会导致时间花在配置工具上，而不是解决问题。
 
 \section{练习}
 
 \begin{enumerate}
-  \item 用管道统计当前目录下文件最多的三种扩展名。提示：\texttt{ls}、\texttt{awk}、\texttt{sort}、\texttt{uniq}。
-  \item 找出你这台机器上占用空间最大的三个目录。先用 \texttt{du}，再用 \texttt{dust}（如果装了）。
-  \item 故意制造一次失败：对一个不存在的文件执行 \texttt{cat}，观察屏幕输出与 \texttt{echo \$?} 的结果。
-  \item 打开 \texttt{man bash}，用 \texttt{/variable} 搜索，找到“变量赋值”那一节，读三行就退出。目的是练“在手册里定位”，不是读完。
-  \item 写一份 bug 报告草稿，描述你刚才那次 \texttt{cat} 失败。要求：别人照着你的步骤能复现。
+  \item 用管道统计当前目录下出现次数最多的三种文件扩展名。可用 \texttt{ls}、\texttt{awk}、\texttt{sort}、\texttt{uniq}。
+  \item 找出本机占用空间最大的三个目录。先用 \texttt{du}，若已安装 \texttt{dust} 再用它比对结果。
+  \item 对一个不存在的文件执行 \texttt{cat}，记录屏幕输出与 \texttt{echo \$?} 的结果。
+  \item 打开 \texttt{man bash}，用 \texttt{/variable} 搜索到“变量赋值”一节后退出。目标是练习在手册中定位，不必通读。
+  \item 为该次 \texttt{cat} 失败写一份缺陷报告草稿，要求他人按步骤可复现。
 \end{enumerate}
 
 \begin{checkpoint}
-读完这一章，你应该能：
+本章结束时，应能：
 \begin{itemize}
-  \item 说清一条管道里每个程序各做什么；
-  \item 解释标准输入、标准输出、标准错误，并用重定向改变它们；
-  \item 用退出码判断一条命令成功还是失败；
-  \item 用 \texttt{-{}-help} 与 \texttt{man} 自己找到答案，而不是搜索；
-  \item 写出一份能让别人复现问题的 bug 报告；
-  \item 说出 Unix 的哪几条设计，解释了今天命令行工具的样子。
+  \item 说明一条管道中每个程序承担的步骤；
+  \item 解释标准输入、标准输出、标准错误，并用重定向改变其去向；
+  \item 依据退出码判断命令成功与否；
+  \item 用 \texttt{-{}-help} 与 \texttt{man} 自行查到答案；
+  \item 写出一份他人可复现的缺陷报告；
+  \item 指出 Unix 的哪几项设计决定了今日命令行工具的形态。
 \end{itemize}
 \end{checkpoint}
