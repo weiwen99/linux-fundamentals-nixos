@@ -284,6 +284,9 @@
 % ---------------------------------------------------------------- 代码
 \usepackage{minted}
 \usemintedstyle{tango}
+% 代码块的底色盒需要内边距，否则首行贴住色块上沿、行首贴住左沿。
+% minted 的 bgcolor 是 \fboxsep=0 的 \colorbox，本身没有留白；
+% bgcolorpadding 会改用零宽边框（颜色同底色）撑出 framesep，肉眼只见留白。
 \ifbknarrow
   \setminted{
     fontsize=\scriptsize,
@@ -291,10 +294,10 @@
     breakanywhere=true,
     autogobble=true,
     bgcolor=codebg,
-    frame=none,
+    bgcolorpadding=4pt,
     tabsize=2,
-    xleftmargin=0.4em,
-    xrightmargin=0.2em,
+    xleftmargin=1.5pt,
+    xrightmargin=1.5pt,
     baselinestretch=1.1
   }
 \else
@@ -304,10 +307,10 @@
     breakanywhere=true,
     autogobble=true,
     bgcolor=codebg,
-    frame=none,
+    bgcolorpadding=6pt,
     tabsize=2,
-    xleftmargin=1.4em,
-    xrightmargin=0.4em,
+    xleftmargin=4pt,
+    xrightmargin=4pt,
     baselinestretch=1.15
   }
 \fi
