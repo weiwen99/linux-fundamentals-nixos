@@ -7,29 +7,67 @@
 }
 
 % ---------------------------------------------------------------- 字体
-% 正文中文用 FandolSong（随 TeX Live 分发，跨机器可得），
-% 标题与界面文字用 Sarasa Gothic，代码用 Sarasa Fixed（含中文等宽字形）。
+% 西文正文用 TeX Gyre Pagella（GUST 许可，可商用）。
 \usepackage{fontspec}
 \setmainfont{TeX Gyre Pagella}
-\setsansfont{Sarasa Gothic SC}[BoldFont={Sarasa Gothic SC SemiBold}]
-\setmonofont{Sarasa Fixed SC}[Scale=0.9]
-% 中文正文字体：思源宋体 SC（SIL OFL 1.1）。
-% build/fonts/ 下的两个文件由 tools/extract-cjk-fonts.py 从 nixpkgs 的
-% SourceHanSerif.ttc 抽出；缺失时退回 Fandol，仅用于临时构建。
-\IfFileExists{build/fonts/SourceHanSerifSC-Regular.otf}{%
-  \setCJKmainfont{SourceHanSerifSC-Regular.otf}[
-    Path=build/fonts/,
-    BoldFont=SourceHanSerifSC-Bold.otf
+% 中文与等宽字体。构建脚本会把 nixpkgs 里的字体路径写进 build/fonts.tex；
+% 存在时按文件与 FontIndex 取精确字面，构建可复现，不依赖系统字体。
+% 不存在时按字族名查找，最后退回 Fandol 与 lmmono，保证在没有 Nix 的机器上也能编译。
+\IfFileExists{build/fonts.tex}{%
+  \typeout{== book: 使用 build/fonts.tex 中的字体路径}%
+  \input{build/fonts.tex}%
+  \setCJKmainfont{SourceHanSerif.ttc}[
+    Path=\shsdir,
+    FontIndex=12,
+    BoldFont=SourceHanSerif.ttc,
+    BoldFeatures={FontIndex=27}
+  ]
+  \setCJKsansfont{Sarasa-Regular.ttc}[
+    Path=\sarasadir,
+    FontIndex=1,
+    BoldFont=Sarasa-SemiBold.ttc,
+    BoldFeatures={FontIndex=1}
+  ]
+  \setCJKmonofont{Sarasa-Regular.ttc}[
+    Path=\sarasadir,
+    FontIndex=37,
+    BoldFont=Sarasa-SemiBold.ttc,
+    BoldFeatures={FontIndex=37}
+  ]
+  \setsansfont{Sarasa-Regular.ttc}[
+    Path=\sarasadir,
+    FontIndex=1,
+    BoldFont=Sarasa-SemiBold.ttc,
+    BoldFeatures={FontIndex=1}
+  ]
+  \setmonofont{Sarasa-Regular.ttc}[
+    Path=\sarasadir,
+    FontIndex=37,
+    BoldFont=Sarasa-SemiBold.ttc,
+    BoldFeatures={FontIndex=37}
   ]
 }{%
-  \setCJKmainfont{FandolSong-Regular.otf}[
-    BoldFont=FandolSong-Bold.otf,
-    ItalicFont=FandolKai-Regular.otf
-  ]
-  \PackageWarning{book}{思源宋体未就绪，暂用 Fandol 回退}%
+  \PackageWarning{book}{未找到 build/fonts.tex，按字族名查找字体}%
+  \IfFontExistsTF{Sarasa Fixed SC}{%
+    \setmonofont{Sarasa Fixed SC}%
+    \setCJKmonofont{Sarasa Fixed SC}%
+    \setCJKsansfont{Sarasa Gothic SC}[BoldFont={Sarasa Gothic SC SemiBold}]%
+    \setsansfont{Sarasa Gothic SC}[BoldFont={Sarasa Gothic SC SemiBold}]%
+  }{%
+    \setmonofont{Latin Modern Mono}%
+    \setCJKmonofont{FandolHei-Regular.otf}%
+    \setCJKsansfont{FandolHei-Regular.otf}[BoldFont=FandolHei-Bold.otf]%
+    \setsansfont{Latin Modern Sans}%
+  }%
+  \IfFontExistsTF{Source Han Serif SC}{%
+    \setCJKmainfont{Source Han Serif SC}[BoldFont={Source Han Serif SC Bold}]%
+  }{%
+    \setCJKmainfont{FandolSong-Regular.otf}[
+      BoldFont=FandolSong-Bold.otf,
+      ItalicFont=FandolKai-Regular.otf
+    ]%
+  }%
 }
-\setCJKsansfont{Sarasa Gothic SC}[BoldFont={Sarasa Gothic SC SemiBold}]
-\setCJKmonofont{Sarasa Fixed SC}
 \newCJKfontfamily\cjkhei{Sarasa Gothic SC}[BoldFont={Sarasa Gothic SC SemiBold}]
 
 % ---------------------------------------------------------------- 颜色
@@ -142,6 +180,7 @@
 \setlist[enumerate]{leftmargin=1.8em, itemsep=3pt, topsep=4pt, parsep=0pt}
 
 % ---------------------------------------------------------------- 图
+\usepackage{float}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, calc}
 \usepackage{caption}

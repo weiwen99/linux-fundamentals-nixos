@@ -17,15 +17,15 @@
 
 Fandol 系列（TeX Live 自带）是 GPL-3+ 字体例外，也允许商用与嵌入，但上游已标记为过时，本书只把它当作构建回退，交付的 PDF 不使用。
 
-## 构建时怎么得到字体
+## 构建时怎么取字体
 
-`nixpkgs` 只提供 `SourceHanSerif.ttc` 这一个 163 MB 的集合文件，含五个地区、七种字重。XeLaTeX 直接从集合里按索引切换粗体并不可靠，因此 `tools/extract-cjk-fonts.py` 从集合中抽出简体中文的 Regular 与 Bold 两个单字体文件，写到 `build/fonts/`。
+`build.sh` 用 `nix build` 取到 nixpkgs 里 `source-han-serif` 与 `sarasa-gothic` 的路径，把两个目录写进 `build/fonts.tex`；`tex/preamble.tex` 读这个文件，用 `Path=` 加 `FontIndex=` 从字体集合（TTC）里精确取用简体中文的正文、粗体、标题与等宽字面。
 
-字体文件不进仓库：
+这样做的理由：
 
-- 体积大（各约 25 MB）；
-- 许可要求再分发时附带许可文本，直接从 nixpkgs 取更干净；
-- 构建可复现，`build.sh` 会按需生成。
+- 不依赖系统是否装了字体，换一台机器结果一致；
+- 不复制字体文件进仓库（集合文件 163 MB，派生文件各约 25 MB）；
+- 拿不到 nix 时自动退回按字族名查找，再退回 Fandol 与 Latin Modern，保证没有 Nix 的机器也能编译。
 
 ## 许可文本
 

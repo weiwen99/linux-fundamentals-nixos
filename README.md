@@ -20,14 +20,19 @@
 ./build.sh
 ```
 
-依赖：XeLaTeX（TeX Live 2025+）、`latexminted`/`pygmentize`、`fontTools`、`nix`（取字体）。
+依赖：XeLaTeX（TeX Live 2025 或更新，需 `ctex`、`minted`、`tcolorbox`、`titlesec`、
+`float`）、`latexminted` 或 `pygmentize`、`nix`（用来定位中文字体）。
 
-在 NixOS 上的一条命令：
+在 NixOS 上：
 
 ```sh
-nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#python3Packages.pygments \
-          nixpkgs#poppler-utils nixpkgs#source-han-serif --command ./build.sh
+nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#source-han-serif \
+          nixpkgs#sarasa-gothic --command ./build.sh
 ```
+
+`build.sh` 把 nixpkgs 里两个字体包的路径写进 `build/fonts.tex`，排版时按
+`Path` + `FontIndex` 从字体集合里取字面；没有 nix 时会退回按字族名查找。
+字体文件不入库，细节见 `docs/fonts.md`。
 
 产物：`build/main.pdf`。
 
@@ -45,7 +50,7 @@ build/                   编译产物（不入库）
 
 ## 许可
 
-- 正文与插图：CC BY-SA 4.0
-- 代码示例：MIT
+- 正文与插图：CC BY-SA 4.0，全文见 `LICENSE`
+- 代码示例与 `tools/`：MIT，全文见 `LICENSE-CODE`
 
 字体许可见 `docs/fonts.md`。

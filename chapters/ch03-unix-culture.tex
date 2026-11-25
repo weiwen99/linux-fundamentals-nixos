@@ -18,7 +18,7 @@ $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
 
 \begin{itemize}
   \item \texttt{history}：打印你输入过的命令，一行一条。
-  \item \texttt{cut -d' ' -f2-}：按空格切开每一行，从第二段取到末尾，去掉行首的序号。
+  \item \texttt{cut -d' ' -f2-}：按空格切开每一行，从第二段取到末尾，去掉行首的序号。\texttt{-d} 后面引号里的那一个空格就是分隔符，少了它整条命令的结果会完全不同。
   \item \texttt{sort}：按字典序排列，把相同的行排到一起。
   \item \texttt{uniq -c}：把相邻的重复行合并，并在前面写上出现次数。
   \item \texttt{sort -rn}：按数字从大到小再排一次。
@@ -27,33 +27,50 @@ $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
 
 竖线叫做管道（pipe）。它把左边程序的输出，直接接到右边程序的输入。没有人写过一个叫“统计我最常用命令”的程序，这条命令是六个通用工具临时拼出来的。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\begin{tikzpicture}[font=\ttfamily\scriptsize, node distance=2.5mm,
-  box/.style={draw=ink!40, fill=ink!5, rounded corners=1pt, inner sep=3pt, minimum height=7mm},
-  lbl/.style={font=\sffamily\scriptsize, text=muted, align=center}]
-  \node[box] (a) {history};
-  \node[box, right=of a] (b) {cut};
-  \node[box, right=of b] (c) {sort};
-  \node[box, right=of c] (d) {uniq -c};
-  \node[box, right=of d] (e) {sort -rn};
-  \node[box, right=of e] (f) {head -5};
-  \foreach \x/\y in {a/b,b/c,c/d,d/e,e/f} {
-    \draw[-{Latex[length=1.4mm]}, teal, thick] (\x) -- (\y);
+\begin{tikzpicture}[font=\sffamily\footnotesize,
+  cmd/.style={draw=teal!60, fill=teal!7, rounded corners=1pt,
+              inner sep=5pt, text=teal!85, font=\ttfamily\footnotesize, anchor=west},
+  dat/.style={draw=rule, fill=paper, rounded corners=1pt,
+              inner sep=5pt, font=\ttfamily\footnotesize, text=ink!90, anchor=west},
+  arr/.style={-{Latex[length=1.4mm]}, teal, thick},
+  note/.style={font=\sffamily\footnotesize, text=muted, anchor=west}]
+
+  % 六个阶段：左列是命令，右列是此刻流过的数据
+  \node[cmd] (c1) at (0,0)      {history};
+  \node[dat] (d1) at (44mm,0)   {\ \ 512\ \ ls -la};
+  \node[note] at (44mm,-4.2mm) {每行一条你输入过的命令，前面带序号};
+
+  \node[cmd] (c2) at (0,-14mm)  {cut -d' ' -f2-};
+  \node[dat] (d2) at (46mm,-17mm) {ls -la};
+  \node[note] at (46mm,-21.6mm) {按空格切段，取第二段到行尾，去掉序号};
+
+  \node[cmd] (c3) at (0,-28mm)  {sort};
+  \node[dat] (d3) at (46mm,-34mm) {cd / vim / ls -la / ls};
+  \node[note] at (46mm,-38.6mm) {按字典序排，相同的行挨到一起};
+
+  \node[cmd] (c4) at (0,-42mm)  {uniq -c};
+  \node[dat] (d4) at (46mm,-51mm) {\ \ 61 cd\ \ \ \ 87 ls};
+  \node[note] at (46mm,-55.6mm) {相邻的重复行合并成一行，前面加计数};
+
+  \node[cmd] (c5) at (0,-56mm)  {sort -rn};
+  \node[dat] (d5) at (46mm,-68mm) {\ \ 87 ls\ \ \ \ 61 cd};
+  \node[note] at (46mm,-72.6mm) {按数字从大到小重排};
+
+  \node[cmd] (c6) at (0,-70mm)  {head -5};
+  \node[dat] (d6) at (46mm,-85mm) {前五行，就是最常用的五条};
+  \node[note] at (46mm,-89.6mm) {截断输出，后面的不再显示};
+
+  \foreach \a/\b in {c1/c2,c2/c3,c3/c4,c4/c5,c5/c6} {
+    \draw[arr] (\a.south) -- (\b.north);
   }
-  \node[lbl, above=1.5mm of a] {全部记录};
-  \node[lbl, above=1.5mm of b] {去掉序号};
-  \node[lbl, above=1.5mm of c] {排到一起};
-  \node[lbl, above=1.5mm of d] {计数};
-  \node[lbl, above=1.5mm of e] {按次数};
-  \node[lbl, above=1.5mm of f] {取前五};
-  % 图例放在轴下方，避免与年份标签重叠
-  \foreach \i/\c/\t in {0/plum/起源, 1/teal/自由软件与内核, 2/ochre/发行版, 3/sage/可复现} {
-    \fill[\c] (30+\i*32,-9) rectangle ++(3,-3);
-    \node[right=1mm, font=\sffamily\scriptsize, text=muted] at (33+\i*32,-10.5) {\t};
+  % 数据列之间的虚线：表示这些值一路流过去
+  \foreach \a/\b in {d1/d2,d2/d3,d3/d4,d4/d5,d5/d6} {
+    \draw[rule, dashed] (\a.south) -- (\b.north);
   }
 \end{tikzpicture}
-\caption{一条管道。每个方框是一个独立程序，竖线负责搬运数据。}
+\caption{一条管道里的六步。左边是程序，右边是它在那一刻看到的数据。每一步只做一件小事，串起来就完成了“统计我最常用的命令”这个没人专门写过程序的任务。}
 \end{figure}
 
 \section{一切皆为文件}
@@ -73,7 +90,7 @@ Unix 有一个影响深远的设计：尽量用“文件”这一个概念，去
 
 \begin{center}
 \small
-\begin{tabularx}{\textwidth}{L{2.2cm} L{1.6cm} L{1.4cm} X}
+\begin{tabularx}{\textwidth}{L{2.4cm} L{1.4cm} L{2.4cm} X}
 \toprule
 \textsf{名称} & \textsf{编号} & \textsf{默认去向} & \textsf{用途} \\
 \midrule
@@ -198,7 +215,7 @@ Linux 的工具是社区维护的。你会遇到 bug，也会需要别人帮忙�
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[font=\sffamily\scriptsize, x=1mm, y=1mm]
+\begin{tikzpicture}[font=\sffamily\footnotesize, x=1mm, y=1mm]
   % 四段底色：起源、自由软件与内核、发行版、可复现部署
   \draw[plum!55, line width=2.4pt] (12,0) -- (34,0);
   \draw[teal!55, line width=2.4pt] (34,0) -- (82,0);

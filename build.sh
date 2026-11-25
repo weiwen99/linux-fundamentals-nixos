@@ -1,32 +1,42 @@
 #!/usr/bin/env bash
 # 构建《Linux 入门基础：从 NixOS 开始》PDF。
 #
-# 依赖：XeLaTeX（TeX Live 2025 或更新）、latexminted/pygmentize、fontTools。
-# 在 NixOS 上可以直接用：
-#   nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#python3Packages.pygments \
-#             nixpkgs#poppler-utils nixpkgs#source-han-serif --command ./build.sh
+# 依赖：XeLaTeX（TeX Live 2025+，含 ctex/minted/tcolorbox）、latexminted 或
+# pygmentize、nix（用于取中文字体）。
+#
+# NixOS 上：
+#   nix shell nixpkgs#texlive.combined.scheme-full nixpkgs#source-han-serif \
+#             nixpkgs#sarasa-gothic --command ./build.sh
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
-FONT_DIR=build/fonts
-REGULAR="$FONT_DIR/SourceHanSerifSC-Regular.otf"
-BOLD="$FONT_DIR/SourceHanSerifSC-Bold.otf"
+# 把 nixpkgs 里的字体路径写进 build/fonts.tex，供 preamble.tex 按 FontIndex 取字面。
+# 拿不到 nix 时跳过，preamble 会退回按字族名查找。
+write_font_paths() {
+  if ! command -v nix >/dev/null 2>&1; then
+    echo "==> 未找到 nix，跳过字体路径生成（改用系统字体）"
+    return
+  fi
 
-if [[ ! -f $REGULAR || ! -f $BOLD ]]; then
-  echo "==> 准备中文字体（思源宋体，SIL OFL 1.1）"
-  ttc=""
-  if command -v nix >/dev/null 2>&1; then
-    store_path=$(nix build --no-link --print-out-paths nixpkgs#source-han-serif)
-    ttc="$store_path/share/fonts/truetype/SourceHanSerif.ttc"
-  fi
-  if [[ -z $ttc || ! -f $ttc ]]; then
-    echo "找不到 SourceHanSerif.ttc：请先安装 nixpkgs#source-han-serif" >&2
-    exit 1
-  fi
-  python3 tools/extract-cjk-fonts.py "$ttc" "$FONT_DIR"
-fi
+  echo "==> 解析字体路径"
+  local shs sarasa
+  shs=$(nix build --no-link --print-out-paths nixpkgs#source-han-serif)/share/fonts/truetype/
+  sarasa=$(nix build --no-link --print-out-paths nixpkgs#sarasa-gothic)/share/fonts/truetype/
+
+  mkdir -p build
+  cat > build/fonts.tex <<FONTS
+% 由 build.sh 生成，勿手改。
+\\newcommand{\\shsdir}{$shs}
+\\newcommand{\\sarasadir}{$sarasa}
+FONTS
+  echo "    思源宋体：$shs"
+  echo "    Sarasa：  $sarasa"
+}
+
+write_font_paths
 
 echo "==> 编译"
 latexmk -r latexmkrc main.tex
+
 echo "==> 完成：build/main.pdf"
