@@ -1,0 +1,148 @@
+\chapter{一台计算机在做什么}
+\chapterlead{这一章不要求你会编程，也不要求你记住命令。它只回答一个问题：从按下电源键到看见光标，机器里发生了什么。答案会解释后面所有命令为什么长成那个样子。}
+
+\section{十分钟上手：先看看你手上的机器}
+
+不管你用的是 Windows、macOS 还是已经装了 Linux，先做一件事：把机器的底细查清楚。这些数字以后天天要用。
+
+\begin{itemize}
+  \item \textbf{Windows}：任务管理器 \textrightarrow\ 性能，能看到 CPU、内存、磁盘的实时曲线；\texttt{Win+R} 输入 \texttt{msinfo32} 看系统摘要。
+  \item \textbf{macOS}：活动监视器，标签页分别对应 CPU、内存、磁盘、网络；“关于本机”看芯片与内存。
+  \item \textbf{Linux}：终端里运行下面四条命令。
+\end{itemize}
+
+\begin{bashcode}
+$ uname -a
+Linux nixos 7.3.4 #1-NixOS SMP PREEMPT_DYNAMIC x86_64 GNU/Linux
+$ nproc
+8
+$ free -h
+               total        used        free
+Mem:            31Gi        9.8Gi        12Gi
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p2  476G  182G  270G  41% /
+\end{bashcode}
+
+四条命令回答四个问题：用的是什么系统与内核、有几个处理器核心、内存还剩多少、磁盘还剩多少。把这四个数字记在笔记第一页。以后机器变慢、磁盘报警，你要拿它们做对比。
+
+\section{硬件：只会执行指令的机器}
+
+打开机箱，你会看到几块电路板和一堆线。真正干活的部件只有四样。
+
+\begin{itemize}
+  \item \textbf{处理器（CPU）}：执行指令。它每秒能执行几十亿条，但只会做很笨的事：把两个数相加，比较两个数的大小，把一个数搬到另一个地方。
+  \item \textbf{内存（RAM）}：存放正在运行的程序和数据。断电就清空，所以它只是工作台，不是仓库。
+  \item \textbf{磁盘（SSD 或硬盘）}：长期存放数据。断电之后，东西还在。
+  \item \textbf{总线与设备}：把上面三者与屏幕、键盘、网卡连接起来。
+\end{itemize}
+
+一段程序，说到底是两样东西：一串指令，和这些指令要处理的数据。屏幕上的每一个像素，本质上都是内存里的一个数字。硬件不理解“文字”，它只搬运和计算数字。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small, node distance=5mm]
+  \node[draw=rule, fill=white, minimum width=132mm, minimum height=11mm, align=center]
+    (apps) {应用程序\\[-1pt]{\footnotesize\color{muted} 浏览器 \textperiodcentered\ 编辑器 \textperiodcentered\ 终端里的命令}};
+  \node[draw=ochre!55, fill=ochre!8, minimum width=132mm, minimum height=8mm, below=of apps, align=center]
+    (sysc) {系统调用接口};
+  \node[draw=teal!55, fill=teal!9, minimum width=132mm, minimum height=14mm, below=of sysc, align=center]
+    (kern) {内核\\[-1pt]{\footnotesize\color{muted} 进程调度 \textperiodcentered\ 内存管理 \textperiodcentered\ 文件系统 \textperiodcentered\ 设备驱动}};
+  \node[draw=rule, fill=white, minimum width=132mm, minimum height=9mm, below=of kern, align=center]
+    (hw) {硬件\\[-1pt]{\footnotesize\color{muted} 处理器 \textperiodcentered\ 内存 \textperiodcentered\ 磁盘 \textperiodcentered\ 网卡}};
+  \draw[-{Latex[length=1.5mm]}, ochre, thick] ([xshift=-8mm]apps.south) -- ([xshift=-8mm]sysc.north);
+  \draw[-{Latex[length=1.5mm]}, muted] ([xshift=8mm]sysc.north) -- ([xshift=8mm]apps.south);
+  \draw[-{Latex[length=1.5mm]}, teal, thick] ([xshift=-8mm]sysc.south) -- ([xshift=-8mm]kern.north);
+  \draw[-{Latex[length=1.5mm]}, teal, thick] ([xshift=-8mm]kern.south) -- ([xshift=-8mm]hw.north);
+  \node[font=\scriptsize, text=ochre, anchor=west] at ([xshift=10mm,yshift=-1.2mm]apps.south) {请求向下};
+  \node[font=\scriptsize, text=muted, anchor=west] at ([xshift=10mm,yshift=-1.2mm]sysc.north) {结果向上};
+\end{tikzpicture}
+\caption{一台机器的四层。程序不直接碰硬件，请求逐层向下，结果逐层返回。}
+\end{figure}
+
+\section{操作系统：在争夺中维持秩序}
+
+一台机器上同时运行着几百个程序。浏览器在等网络，音乐播放器在往声卡写数据，终端里的命令在读写文件。它们都想用处理器，都想占内存，都想访问磁盘。
+
+如果每个程序都能直接操作硬件，结果会是灾难：一个程序算错一个地址，就可能覆盖另一个程序的数据；一个死循环就能让整台机器没有反应。
+
+操作系统（operating system）的职责，就是在这些争夺中维持秩序。它主要管四件事：进程、内存、文件、设备。这四件事，就是本书第一部分的四条主线。
+
+处理器其实一次只能执行一个程序的一段指令。“同时运行几百个程序”是操作系统在极短的时间里反复切换。内存的管理方式类似：每个程序都以为自己独占了一整块连续内存，实际上它访问每个地址都要经过操作系统的翻译，越界访问会被直接拒绝。
+
+\section{内核与用户态}
+
+操作系统最核心的部分叫内核（kernel）。它运行在处理器的一种特殊模式里，可以直接访问内存和硬件。普通程序运行在另一种模式里，权限受限：不能直接写磁盘，不能直接配置网卡，不能关掉别人的程序。
+
+程序需要内核帮忙时，通过系统调用（system call）提出请求。比如你执行 \texttt{rm} 删除一个文件，\texttt{rm} 自己并没有擦掉磁盘上的数据；它只是请求内核替它删除，内核先检查你有没有权限，再决定做不做。
+
+这个设计带来两个后果。第一，权限是真实存在的，不是提示框。第二，最高权限的账户（root）几乎不受这些限制，所以长期用 root 登录是危险的。本书会让你用普通用户工作，只在需要时临时取得权限。
+
+\begin{warnbox}[不要长期用 root 登录]
+“以 root 身份运行”意味着“没有任何东西会拦住你”。初学者最常见的灾难，是在 root shell 里执行了一条本该在某个目录下执行的删除命令。第七章会讲怎么正确使用 \texttt{sudo}。
+\end{warnbox}
+
+\section{Linux 是什么}
+
+严格地说，Linux 只是一个内核。1991 年，林纳斯·托瓦兹写了一个能在个人电脑上运行的内核，并把它公开。但只有内核，机器还是没法用：你需要能列目录的程序、能编辑文件的程序、能安装软件的工具。
+
+这些程序大多来自 GNU 项目，所以有人坚持把它叫作 GNU/Linux。日常交流里，大家说 Linux，通常指的是“Linux 内核加上一整套 GNU 工具和桌面软件”。
+
+把内核、工具、包管理器、默认配置和社区支持打包在一起，就叫一个发行版（distribution）。Ubuntu、Debian、Fedora、Arch、NixOS 都是发行版。它们共用同一个内核，区别在于装了什么工具、怎么安装软件、默认配置是什么，以及出问题时去哪里求助。
+
+\begin{notebox}[桌面不是 Linux 的一部分]
+很多人以为 Linux 长着某个固定的样子。其实图形界面是另一层软件：底层的显示协议（X11 或 Wayland），加上负责画窗口、处理键盘鼠标的程序，也就是桌面环境或合成器，比如 GNOME、KDE Plasma、Hyprland、Niri。同一台 Linux，可以装 GNOME，也可以装 Hyprland，命令行部分完全一样。
+\end{notebox}
+
+\section{发行版怎么选}
+
+市面上有几百个发行版，但真正值得初学者考虑的只有几个。它们的差别没有宣传里那么大，选哪个都不会决定你学不学得会 Linux。下表只列对初学者有影响的部分。
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{L{2.1cm} L{3.3cm} L{1.6cm} L{4.0cm} X}
+\toprule
+\textsf{发行版} & \textsf{更新节奏} & \textsf{包管理} & \textsf{适合谁} & \textsf{主要代价} \\
+\midrule
+Ubuntu LTS & 两年一个长期支持版 & apt & 想要最多教程和第三方软件的人 & 默认配置多，跨大版本升级容易出问题 \\
+Debian & 约两年，更新保守 & apt & 想要稳定的服务器 & 软件版本偏旧 \\
+Fedora & 约半年 & dnf & 使用新硬件、想尝新软件的人 & 生命周期短，升级频繁 \\
+Arch & 滚动更新 & pacman & 愿意读文档、自己维护的人 & 升级冲突要自己处理 \\
+NixOS & 半年一个稳定版 & nix & 想理解系统、需要可回滚的人 & 学习曲线陡，教程不通用 \\
+\bottomrule
+\end{tabularx}
+\caption{五个常见发行版的取舍。没有“最好”，只有“适不适合现在”。}
+\end{table}
+
+\section{为什么把 NixOS 当第一台 Linux}
+
+传统发行版有一个共同的问题：系统的状态是累积出来的。你按教程装了一个软件，改了三个配置文件，加了一个第三方软件源，半年后又升级了一次系统。这台机器现在能正常工作，但没有人能完整说出它为什么能工作。
+
+NixOS 换了一种做法：整个系统由一份配置描述。装了哪些软件、开了哪些服务、用户是谁、网络怎么配、桌面用什么，都写在配置里。执行一次重建，系统按照配置生成新的状态；切换之后生效。每次重建都会留下一个“代”（generation），出问题可以用一条命令回到上一代。
+
+支撑这件事的是一个只读的软件仓库：\texttt{/nix/store}。每个软件包放在以哈希命名的目录里，安装不会覆盖旧版本，卸载也不会影响正在运行的程序。
+
+代价同样真实。你要学一小部分 Nix 语言；网上绝大多数 Linux 教程不能照抄；磁盘占用比传统发行版多；冷门软件可能要自己打包。
+
+对本书的读者，这笔交易是划算的：你要学的是“系统由什么组成”，而 NixOS 把这件事写在了明面上。你也会因此更早养成两个习惯：改动之前先想清楚要改什么，以及永远保留一条回滚的路。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 找到你手上这台机器的处理器型号、内存大小和磁盘剩余空间，记在笔记第一页。
+  \item 打开任务管理器或活动监视器，数一数现在有多少个进程在运行。挑三个你认识的，为什么它们一直在后台。
+  \item 用一句话回答：为什么普通程序不能直接格式化磁盘？
+  \item 用一段话向别人解释：为什么这本书选 NixOS。
+\end{enumerate}
+
+\begin{checkpoint}
+读完这一章，你应该能：
+\begin{itemize}
+  \item 说出处理器、内存、磁盘各自负责什么；
+  \item 解释操作系统为什么要管理进程、内存、文件和设备；
+  \item 说明内核与普通程序的区别，以及 root 为什么危险；
+  \item 说清 Linux 内核、GNU 工具和发行版之间的关系；
+  \item 用一段话向别人解释：为什么这本书选 NixOS。
+\end{itemize}
+\end{checkpoint}

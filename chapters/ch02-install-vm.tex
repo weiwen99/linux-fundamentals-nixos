@@ -1,0 +1,204 @@
+\chapter{装一台 NixOS 虚拟机}
+\chapterlead{这一章的目标很具体：在你现有的电脑上装一台 NixOS 虚拟机，能登录、能上网、能改建。装坏了删掉重来，代价是十分钟。后面所有章节都在这台机器上做。}
+
+\section{先决条件}
+
+你需要一台能流畅运行虚拟机的电脑：内存 8\,GB 以上，可用磁盘 30\,GB 以上。虚拟机本身分配 2 个处理器核心、4\,GB 内存、20\,GB 磁盘就够读书用。
+
+虚拟化软件按你的系统选一个：
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{3.4cm} L{2.6cm} X}
+\toprule
+\textsf{软件} & \textsf{平台} & \textsf{说明} \\
+\midrule
+VirtualBox & Windows / Linux / Intel Mac & 免费，界面直观，本节以它为例 \\
+GNOME Boxes & Linux & 系统自带或一条命令安装，最省事 \\
+UTM & Apple Silicon Mac & 免费，支持 aarch64 虚拟机 \\
+VMware Workstation & Windows / Linux & 性能好，个人使用免费 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Apple Silicon 的 Mac 要下载 \texttt{aarch64} 镜像，其余情况下载 \texttt{x86\_64} 镜像。两者安装步骤一样。
+
+\section{下载镜像}
+
+打开 \url{https://nixos.org/download}，选择 NixOS 26.11 的图形安装镜像（GNOME ISO），大约 2--3\,GB。镜像有两个版本：带图形界面的和最小的。本书用带图形界面的，因为安装时可以用浏览器查资料。
+
+下载完核对校验值。官网给出的 SHA-256 是唯一可信来源，不要把校验值从第三方博客抄来。
+
+\begin{bashcode}
+$ sha256sum nixos-gnome-26.11-x86_64-linux.iso
+\end{bashcode}
+
+Windows 上用 PowerShell 的 \texttt{Get-FileHash}，macOS 上用 \texttt{shasum -a 256}。输出与官网一致才继续。
+
+\section{创建虚拟机}
+
+以 VirtualBox 为例。新建虚拟机，类型选 Linux，版本选 Other Linux (64-bit)。内存给 4096\,MB，处理器给 2 个，磁盘给 20\,GB。在“系统”设置里确认启用 EFI；在“显示”里把显存调到 128\,MB。
+
+创建完成后，在“存储”里把光盘图标指向刚下载的 ISO，启动。
+
+VirtualBox 有一个容易踩的坑：默认的显存和图形控制器可能让安装界面显示异常。如果启动后黑屏，关机，把“显示 \textrightarrow\ 图形控制器”改成 VMSVGA，再启动。
+
+\begin{notebox}[为什么用 EFI]
+NixOS 默认用 systemd-boot 引导，它需要 EFI 分区。虚拟机里启用 EFI，实体机上也要用 UEFI 模式启动 U 盘，两边保持一致，后面的配置可以直接复用。
+\end{notebox}
+
+\section{进入安装环境}
+
+启动后会进入一个 GNOME 桌面，桌面上有一个“Install NixOS”图标和一个终端。图形安装器能完成基本安装，但本书走命令行，原因有两个：命令可以复制、可以比对、可以写进笔记；图形安装器每一步的选项，最终也都写进同一份配置文件。
+
+打开终端，先确认网络和磁盘。
+
+\begin{bashcode}
+$ ping -c 3 nixos.org
+$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0     11:0    1  2.4G  0 rom
+vda    254:0    1   20G  0 disk
+\end{bashcode}
+
+\texttt{vda} 就是虚拟磁盘。名字里的 \texttt{a} 表示第一块，后面加分区会变成 \texttt{vda1}、\texttt{vda2}。实体机上通常是 \texttt{nvme0n1} 或 \texttt{sda}，第十六章会讲怎么确认。
+
+\section{分区与格式化}
+
+下面这段命令会清空整块 \texttt{vda}。在虚拟机里无所谓，但请养成习惯：每次执行前，先用 \texttt{lsblk} 确认磁盘名，再按回车。
+
+\begin{bashcode}
+$ sudo parted /dev/vda -- mklabel gpt
+$ sudo parted /dev/vda -- mkpart ESP fat32 1MiB 512MiB
+$ sudo parted /dev/vda -- set 1 esp on
+$ sudo parted /dev/vda -- mkpart root ext4 512MiB 100%
+$ sudo mkfs.fat -F 32 -n boot /dev/vda1
+$ sudo mkfs.ext4 -L nixos /dev/vda2
+$ sudo mount /dev/disk/by-label/nixos /mnt
+$ sudo mkdir -p /mnt/boot
+$ sudo mount /dev/disk/by-label/boot /mnt/boot
+\end{bashcode}
+
+分区只有两个：一个 512\,MB 的 EFI 分区，放引导程序；剩下的全部给根分区。这个布局简单，够用，也容易理解。需要交换空间、独立 \texttt{/home}、加密的读者，等读完第十七章再回来调整。
+
+\texttt{mkfs} 是“建立文件系统”的意思。磁盘刚分区时只是一块空白区域，\texttt{mkfs.ext4} 在上面写下目录结构、空闲块表这些元数据，操作系统才能往里存文件。EFI 分区必须用 FAT32，这是固件的要求。
+
+\section{生成初始配置}
+
+\begin{bashcode}
+$ sudo nixos-generate-config --root /mnt
+writing /mnt/etc/nixos/hardware-configuration.nix...
+writing /mnt/etc/nixos/configuration.nix...
+\end{bashcode}
+
+它生成了两份文件。\texttt{hardware-configuration.nix} 记录这台机器的磁盘、分区、内核模块、CPU 特性，不要手改，重装或换硬件时重新生成。\texttt{configuration.nix} 是你要编辑的那份，里面大部分选项是注释。
+
+用 nano 打开它（第一次用，nano 比 vim 友好：\texttt{Ctrl+O} 保存，\texttt{Ctrl+X} 退出）。
+
+\begin{bashcode}
+$ sudo nano /mnt/etc/nixos/configuration.nix
+\end{bashcode}
+
+找到并修改这几项，其余保持默认：
+
+\begin{nixcode}
+{ config, pkgs, ... }:
+
+{
+  imports = [ ./hardware-configuration.nix ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  networking.hostName = "nixos-lab";
+  networking.networkmanager.enable = true;
+
+  time.timeZone = "Asia/Shanghai";
+  i18n.defaultLocale = "zh_CN.UTF-8";
+\end{nixcode}
+
+文件到这里还没结束。接着往下，找到用户与软件包那一段：
+
+\begin{nixcode}
+  services.openssh.enable = true;
+
+  users.users.weiwen = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" ];
+    initialPassword = "change-me";
+  };
+
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+    curl
+    htop
+  ];
+
+  system.stateVersion = "26.11";
+}
+\end{nixcode}
+
+逐项说明：
+
+\begin{itemize}
+  \item \texttt{systemd-boot} 是引导程序，负责把内核交给机器。
+  \item \texttt{hostName} 是主机名，登录后会出现在提示符里。
+  \item \texttt{NetworkManager} 管网络，笔记本和虚拟机都用它。
+  \item \texttt{timeZone} 与 \texttt{defaultLocale} 决定时间与语言。\texttt{zh\_CN.UTF-8} 让系统支持中文显示；终端里仍建议用英文输出，便于搜索报错。
+  \item \texttt{services.openssh} 打开 SSH 服务，第九章会用到。
+  \item \texttt{extraGroups} 里的 \texttt{wheel} 表示这个用户可以用 \texttt{sudo} 取得管理员权限。
+  \item \texttt{initialPassword} 只是首次登录用的临时密码，登录后立刻改掉。
+  \item \texttt{stateVersion} 标记这份配置面向哪个版本，装好后不要改，原因在第十四章。
+\end{itemize}
+
+\begin{warnbox}[缩进与分号]
+Nix 用空白分隔，用分号结束每一项，用花括号分组。少一个分号，整个重建就会失败。报错会指出行号，按行号找，不要凭感觉猜。
+\end{warnbox}
+
+\section{安装}
+
+\begin{bashcode}
+$ sudo nixos-install
+\end{bashcode}
+
+它会下载并构建系统，视网络情况需要十几分钟。过程中会要求设置 root 密码。结束时会打印一行提示，让你重启。
+
+\begin{bashcode}
+$ sudo reboot
+\end{bashcode}
+
+重启后应该看到引导菜单，默认项就是刚装好的系统。登录界面用你创建的用户名和 \texttt{initialPassword} 里的密码。
+
+\section{第一次登录后要做的三件事}
+
+\begin{bashcode}
+$ nixos-version
+26.11.20261113.d5cc683 (Zokor)
+$ sudo passwd weiwen
+$ sudo nixos-rebuild switch
+\end{bashcode}
+
+第一，确认版本。第二，改掉临时密码。第三，运行一次重建，确认这套流程能跑通——以后你每次改配置，用的都是同一条命令。
+
+\section{练习：故意改坏，再修好}
+
+这是本章最重要的练习。它建立的是心理安全感：这台机器坏得掉，也回得来。
+
+\begin{enumerate}
+  \item 在 \texttt{configuration.nix} 里把 \texttt{networking.hostName} 改成 \texttt{broken-host}，执行 \texttt{sudo nixos-rebuild switch}。退出重新登录，提示符里的主机名变了。
+  \item 再把某一项改出语法错误，比如删掉一个分号，重建。观察报错，按行号找到问题。
+  \item 执行 \texttt{sudo nixos-rebuild switch -{}-rollback}，回到上一代。再登录，主机名恢复。
+  \item 用 \texttt{sudo nixos-rebuild list-generations} 看现在有几代系统。
+\end{enumerate}
+
+\begin{checkpoint}
+读完这一章，你应该能：
+\begin{itemize}
+  \item 独立创建一台 NixOS 虚拟机并完成安装；
+  \item 说清 EFI 分区与根分区各自的作用；
+  \item 看懂 \texttt{configuration.nix} 里最常用的几项；
+  \item 用 \texttt{nixos-rebuild switch} 应用配置，用 \texttt{-{}-rollback} 撤销；
+  \item 在改坏系统之后不慌，知道怎么退回去。
+\end{itemize}
+\end{checkpoint}

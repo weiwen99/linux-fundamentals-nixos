@@ -1,0 +1,9 @@
+build/
+dist/*.pdf
+*.aux
+*.log
+*.out
+*.toc
+*.xdv
+_minted*/
+__pycache__/

@@ -1,0 +1,226 @@
+\chapter{第一个终端}
+\chapterlead{终端不是黑框，也不是程序员的专属工具。它是一间没有装饰的工作室：你说一句，机器做一件，把结果原样交回来。这一章只做一件事——让你在十分钟内不再怕它。}
+
+\section{十分钟上手：问机器四个问题}
+
+打开终端。Windows 上可以用 WSL，macOS 用“终端”，Linux 上快捷键通常是 \texttt{Ctrl+Alt+T}。然后在提示符后面依次输入：
+
+\begin{bashcode}
+$ whoami
+weiwen
+$ pwd
+/home/weiwen
+$ date
+2026 年 11 月 25 日 星期三 14 时 32 分 11 秒 CST
+$ uptime
+ 14:32:11 up 3 days,  2:07,  1 user,  load average: 0.42, 0.31, 0.28
+\end{bashcode}
+
+四行回答分别是：我是谁、我在哪、现在几点、这台机器开了多久、有多忙。最后三个数字是 1、5、15 分钟内的平均负载，可以粗略理解为“有多少任务在排队”。数字长期高于处理器核心数，说明机器有点吃力。
+
+你刚才做的事，是把一条条命令交给一个叫 shell 的程序。它读取你输入的行，找到对应的程序，把参数传过去，再把结果写回屏幕。
+
+\section{提示符在说什么}
+
+在动手之前，先看懂你面前那一行字。它通常长这样：
+
+\begin{center}
+\begin{tikzpicture}[font=\ttfamily\small]
+  \node[anchor=west] (u) at (0,0) {\textcolor{teal}{weiwen}};
+  \node[anchor=west] (at) at ([xshift=1mm]u.east) {\textcolor{muted}{@}};
+  \node[anchor=west] (h) at ([xshift=1mm]at.east) {\textcolor{teal}{nixos}};
+  \node[anchor=west] (c) at ([xshift=1mm]h.east) {\textcolor{muted}{:}};
+  \node[anchor=west] (p) at ([xshift=1mm]c.east) {\textcolor{ink}{\textasciitilde/projects}};
+  \node[anchor=west] (d) at ([xshift=3mm]p.east) {\textcolor{muted}{\$}};
+  \node[font=\sffamily\scriptsize, text=muted, below=6mm of u] {用户名};
+  \node[font=\sffamily\scriptsize, text=muted, below=6mm of h] {主机名};
+  \node[font=\sffamily\scriptsize, text=muted, below=6mm of p] {当前目录};
+  \node[font=\sffamily\scriptsize, text=muted, below=6mm of d] {普通用户};
+  \draw[rule] (u.south) -- ++(0,-4mm);
+  \draw[rule] (h.south) -- ++(0,-4mm);
+  \draw[rule] (p.south) -- ++(0,-4mm);
+  \draw[rule] (d.south) -- ++(0,-4mm);
+\end{tikzpicture}
+\end{center}
+
+三件事值得记住。第一，\texttt{\textasciitilde} 是你的家目录，\texttt{\textasciitilde/projects} 就是“家目录下的 projects”。第二，末尾是 \texttt{\$} 表示普通用户，是 \texttt{\#} 表示 root。第三，提示符只是提示，不是命令的一部分；抄命令时不要把它抄进去。
+
+如果你看到的是 \texttt{>}，说明上一条命令还缺一个结尾（多半是引号没配对），按 \texttt{Ctrl+C} 退出来重来。
+
+\section{一条命令的解剖}
+
+\begin{bashcode}
+$ ls -lh --sort=size /var/log
+\end{bashcode}
+
+这一行由四部分组成。
+
+\begin{center}
+\begin{tikzpicture}[font=\ttfamily\small, node distance=1mm]
+  \node[draw=teal!70, fill=teal!7, rounded corners=1pt, inner sep=3pt] (cmd) {ls};
+  \node[draw=ochre!70, fill=ochre!7, rounded corners=1pt, inner sep=3pt, right=3mm of cmd] (opt) {-lh};
+  \node[draw=ochre!70, fill=ochre!7, rounded corners=1pt, inner sep=3pt, right=1mm of opt] (opt2) {--sort=size};
+  \node[draw=ink!40, fill=ink!5, rounded corners=1pt, inner sep=3pt, right=3mm of opt2] (arg) {/var/log};
+  \node[font=\sffamily\scriptsize, text=teal, below=3mm of cmd] {命令};
+  \node[font=\sffamily\scriptsize, text=ochre, below=3mm of opt2] {选项};
+  \node[font=\sffamily\scriptsize, text=ink, below=3mm of arg] {参数};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+  \item \textbf{命令}：要运行的程序名。shell 会去 \texttt{PATH} 列出的目录里找它。
+  \item \textbf{选项}：改变行为。单横线是短选项，可以合并（\texttt{-l -h} 写成 \texttt{-lh}）；双横线是长选项，通常带等号赋值。
+  \item \textbf{参数}：命令作用的对象。上面是目录 \texttt{/var/log}。
+\end{itemize}
+
+空格是分隔符，不是装饰。\texttt{ls -lh} 和 \texttt{ls-lh} 是两回事：后者会被当成一个不存在的命令名。路径里有空格时，用引号包起来：
+
+\begin{bashcode}
+$ cd "My Documents"      # 正确
+$ cd My Documents        # 会去找两个目录：My 和 Documents
+\end{bashcode}
+
+\section{补全与历史：少打一半的字}
+
+\begin{itemize}
+  \item \textbf{Tab}：补全文件名和命令名。输入 \texttt{cd /var/lo} 再按 Tab，shell 会补成 \texttt{/var/log}。按两下 Tab，列出所有可能的选项。
+  \item \textbf{上箭头}：翻出上一条命令。连按可以一直往回翻。
+  \item \textbf{Ctrl+R}：反向搜索历史。输入 \texttt{ssh}，它会把最近含 \texttt{ssh} 的命令找出来；再按一次 Ctrl+R 继续往前找。
+  \item \textbf{!!}：重复上一条命令。\texttt{sudo !!} 的意思是“用 root 再执行一次刚才那条”。
+  \item \textbf{!\_\$}：上一条命令的最后一个参数。\texttt{mkdir demo} 之后输 \texttt{cd !\_\$}，直接进入 \texttt{demo}。
+\end{itemize}
+
+这些不是花招。一天敲两百条命令，补全和历史能省下的不只是时间，还有拼写错误带来的误操作。
+
+\section{打断、挂起、退出}
+
+三个按键，三种含义，新手最容易混。
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{2.6cm} L{2.4cm} X}
+\toprule
+\textsf{按键} & \textsf{动作} & \textsf{什么时候用} \\
+\midrule
+\texttt{Ctrl+C} & 中断当前程序 & 命令卡住、输出刷屏、发现参数写错了 \\
+\texttt{Ctrl+Z} & 挂起到后台 & 想临时回到提示符，稍后继续 \\
+\texttt{Ctrl+D} & 发送输入结束 & 退出 shell，或结束 \texttt{cat} 这类等待输入的程序 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+挂起之后，用 \texttt{jobs} 看后台有哪些任务，\texttt{fg} 把最近一个调回前台，\texttt{bg} 让它在后台继续跑。日常最常用的是 \texttt{Ctrl+C}：它救过每一个人的命。
+
+\begin{warnbox}[Ctrl+C 不是万能撤销]
+它只能中断还在前台运行的程序。已经写进磁盘的东西不会因此还原。删除文件、格式化磁盘这类操作，中断得再快也没用——这也是第四章要讲“先看清楚路径再按回车”的原因。
+\end{warnbox}
+
+\section{报错怎么读}
+
+报错信息不是判决书，是线索。常见的一共四类。
+
+\begin{bashcode}
+$ 1s
+bash: 1s: command not found
+$ cat /etc/shadow
+cat: /etc/shadow: Permission denied
+$ cat notes.txt
+cat: notes.txt: No such file or directory
+$ echo "hello
+>
+\end{bashcode}
+
+\begin{itemize}
+  \item \textbf{command not found}：找不到这个程序。九成是拼错了（\texttt{1s} 里的数字 1），或者程序没装、不在 \texttt{PATH} 里。
+  \item \textbf{Permission denied}：程序找到了，但你没有权限。用 \texttt{ls -l} 看文件权限，第六章细讲。
+  \item \textbf{No such file or directory}：路径不对。用 \texttt{pwd} 确认自己在哪，用 \texttt{ls} 确认文件在不在。
+  \item 提示符变成 \texttt{>}：引号或括号没闭合。补上，或者 \texttt{Ctrl+C} 重来。
+\end{itemize}
+
+读报错的方法是固定的：先看是哪一类，再看它提到的路径或名字，最后才去搜索。直接复制整段报错去搜，通常会搜到十个不同的答案。
+
+\section{环境变量与 PATH}
+
+shell 里有一批变量，保存着影响程序行为的信息。最需要先认识的是 \texttt{PATH}。
+
+\begin{bashcode}
+$ echo $PATH
+/home/weiwen/.nix-profile/bin:/run/current-system/sw/bin:/usr/bin:/bin
+$ command -v rg
+/home/weiwen/.nix-profile/bin/rg
+\end{bashcode}
+
+\texttt{PATH} 是一串目录，用冒号隔开。你输入 \texttt{rg} 时，shell 按顺序在这些目录里找同名文件，找到第一个就执行。所以“命令找不到”通常不是没装，而是装在了不在 \texttt{PATH} 里的地方。
+
+\begin{bashcode}
+$ export EDITOR=nvim      # 只对当前 shell 有效
+$ echo $EDITOR
+nvim
+\end{bashcode}
+
+\texttt{export} 设置的变量会传给之后启动的程序。想让设置长期生效，要写进 shell 的配置文件；在 NixOS 上，更推荐写进 Home Manager（第十六章）。
+
+\section{选一个 shell}
+
+shell 不止一个。常见的有三种。
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{2.2cm} L{2.2cm} X}
+\toprule
+\textsf{shell} & \textsf{特点} & \textsf{适合} \\
+\midrule
+bash & 到处都有，语法最通用 & 写脚本、登服务器、照抄教程 \\
+zsh & 补全更强，主题丰富 & 日常交互，愿意配置 \\
+fish & 开箱即用，语法高亮、自动建议 & 不想折腾配置的人 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+本书的命令在三种 shell 下都能跑。脚本一律用 bash 写——服务器上一定有 bash，不一定有 zsh 或 fish。这个区分很重要：交互用哪个随你喜欢，脚本要选最通用的那个。
+
+\section{旧工具与新工具}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{L{3.2cm} L{2.6cm} X}
+\toprule
+\textsf{旧工具} & \textsf{新工具} & \textsf{新在哪里} \\
+\midrule
+\texttt{cd} & \texttt{zoxide} & 记住你去过的目录，\texttt{z proj} 直接跳转 \\
+\texttt{ls} & \texttt{eza} & 彩色、图标、树状、Git 状态一屏看完 \\
+\texttt{cat} & \texttt{bat} & 语法高亮、行号、自动分页 \\
+\texttt{history} & \texttt{atuin} & 跨机器同步、可按目录与退出码过滤 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{lab}[练习：把四个按键练成肌肉记忆]
+\begin{enumerate}
+  \item 输入 \texttt{cd /usr/} 然后按 Tab，看它补成什么；再按一次 Tab，看它列出什么。
+  \item 运行 \texttt{sleep 30}，然后用 \texttt{Ctrl+C} 打断它。
+  \item 运行 \texttt{sleep 30}，用 \texttt{Ctrl+Z} 挂起，\texttt{jobs} 查看，\texttt{fg} 调回，再 \texttt{Ctrl+C} 结束。
+  \item 用 \texttt{Ctrl+R} 找出你十分钟前输入的第一条命令。
+\end{enumerate}
+\end{lab}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{echo} 打印你的家目录路径。提示：\texttt{echo \$HOME}。
+  \item 找出 \texttt{PATH} 里有几个目录。提示：把 \texttt{echo \$PATH} 的输出交给 \texttt{tr ':' '\textbackslash n'} 再数行。
+  \item 故意输错三条命令：一条拼错名字、一条访问没权限的文件、一条打开不存在的文件。把三种报错抄进笔记。
+  \item 用 \texttt{type} 和 \texttt{command -v} 查同一个命令，比较输出有什么不同。
+\end{enumerate}
+
+\begin{checkpoint}
+读完这一章，你应该能：
+\begin{itemize}
+  \item 看懂提示符里的用户名、主机名、当前目录和权限标记；
+  \item 把一条命令拆成命令、选项、参数三部分；
+  \item 用 Tab、历史、\texttt{Ctrl+R} 少打字；
+  \item 用 \texttt{Ctrl+C}、\texttt{Ctrl+Z}、\texttt{Ctrl+D} 控制程序；
+  \item 判断四类常见报错分别是什么意思；
+  \item 解释 \texttt{PATH} 是什么，以及“命令找不到”的常见原因。
+\end{itemize}
+\end{checkpoint}
