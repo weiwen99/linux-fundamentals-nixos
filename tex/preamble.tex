@@ -235,11 +235,12 @@
 \usepackage{etoolbox}
 \usepackage{xltabular}
 \AtBeginEnvironment{xltabular}{\ifbknarrow\scriptsize\fi}
-% 表格一律用 tabularx：不跨页，因而不会触发 longtable 在页尾拆分时的
-% glue 问题或分页循环。代价是单表不能高于一页，所以正文与附录里的长表
-% 都控制在二三十行以内（术语表按字母分成两张）。
-\let\booktable\tabularx
-\let\endbooktable\endtabularx
+% 表格一律用 xltabular（longtable 之上加 X 列）：可跨页，因此窄页上的长表
+% 不会溢出页面，宽页上的短表也不会被强制分页。此前在宽页改用 tabularx 会
+% 让按比例分配的 X 列多出约两倍行内边距，出现固定的 24pt 溢出。
+\let\booktable\xltabular
+\let\endbooktable\endxltabular
+i
 
 
 % ---------------------------------------------------------------- 列表

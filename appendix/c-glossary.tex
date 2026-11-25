@@ -1,47 +1,69 @@
 \chapter{术语表}
-\chapterlead{按汉语拼音排序。英文原词放在括号里，检索文档与报错时用英文更有效。}
+\chapterlead{按主题分组的术语，同组内按出现顺序排列。英文原词放在括号里，检索文档与报错时用英文更有效。}
+
+\section{文件与磁盘}
 
 \begin{booktable}{\textwidth}{J{0.5} J{1.5}}
 \toprule
 术语 & 说明 \\
 \midrule
-闭包（closure） & 一个程序运行所需的全部 store 路径。第十一章 \\
-标准错误（stderr） & 程序的错误输出通道，编号 2。第三章 \\
-标准输出（stdout） & 程序的正常输出通道，编号 1。第三章 \\
-代（generation） & 一次系统重建留下的完整状态，可整体切换与回滚。第十一章 \\
-导出（derivation） & Nix 的构建配方：输入、脚本、输出路径。第十一章 \\
-发行版（distribution） & 内核、工具、包管理器、默认配置与支持渠道的打包。第一章 \\
 分区（partition） & 磁盘上的独立区域，各自容纳一个文件系统。第二章 \\
-符号链接（symlink） & 内容为另一条路径的文件，可跨分区。第五章 \\
-管道（pipe） & 把左侧程序的标准输出接到右侧程序的标准输入。第三章 \\
 挂载（mount） & 把文件系统接到目录树上某个位置。第二章 \\
-环境变量（environment variable） & 影响程序行为的键值，例如 \texttt{PATH}。第四章 \\
-内核（kernel） & 操作系统中直接访问硬件、管理进程与内存的核心部分。第一章 \\
-可复现（reproducible） & 同样的输入得到同样的产物。第十一章 \\
+校验和（checksum） & 用于验证数据完整性的指纹，例如 SHA-256。第二章 \\
+路径（path） & 文件在目录树中的位置；以斜线开头为绝对路径。第五章 \\
+符号链接（symlink） & 内容为另一条路径的文件，可跨分区。第五章 \\
+软链接 & 符号链接的别称。第五章 \\
+索引节点（inode） & 文件系统记录文件元数据与数据块位置的结构。第五章 \\
+虚拟文件系统（procfs） & 由内核生成、反映运行时状态的目录树，挂在 \texttt{/proc}。第三章 \\
 \bottomrule
 \end{booktable}
+
+\section{命令行}
 
 \begin{booktable}{\textwidth}{J{0.5} J{1.5}}
 \toprule
 术语 & 说明 \\
 \midrule
 命令行界面（CLI） & 以文本输入输出为主的交互方式。第四章 \\
-路径（path） & 文件在目录树中的位置；以斜线开头为绝对路径。第五章 \\
-轮转（rotation） & 日志按大小或时间切分并清理旧文件的机制。第二十八章 \\
-权限位（mode） & 文件或目录的读、写、执行许可，九位三组。第七章 \\
-软链接 & 符号链接的别称。第五章 \\
-容器（container） & 共享宿主内核的隔离进程。第二十三章 \\
-散列（hash） & 由内容算出的定长指纹，用于命名 store 路径。第十一章 \\
-守护进程（daemon） & 长期在后台运行、无终端的进程。第八章 \\
-索引节点（inode） & 文件系统记录文件元数据与数据块位置的结构。第五章 \\
 伪终端（pty） & 终端模拟器与 shell 之间的通道。第四章 \\
+环境变量（environment variable） & 影响程序行为的键值，例如 \texttt{PATH}。第四章 \\
+管道（pipe） & 把左侧程序的标准输出接到右侧程序的标准输入。第三章 \\
+标准输出（stdout） & 程序的正常输出通道，编号 1。第三章 \\
+标准错误（stderr） & 程序的错误输出通道，编号 2。第三章 \\
+\bottomrule
+\end{booktable}
+
+\section{权限、进程与服务}
+
+\begin{booktable}{\textwidth}{J{0.5} J{1.5}}
+\toprule
+术语 & 说明 \\
+\midrule
+权限位（mode） & 文件或目录的读、写、执行许可，九位三组。第七章 \\
 系统调用（syscall） & 程序请求内核服务的入口。第一章 \\
-校验和（checksum） & 用于验证数据完整性的指纹，例如 SHA-256。第二章 \\
+内核（kernel） & 操作系统中直接访问硬件、管理进程与内存的核心部分。第一章 \\
 信号（signal） & 内核发给进程的简短消息，如 \texttt{SIGTERM}。第八章 \\
-虚拟文件系统（procfs） & 由内核生成、反映运行时状态的目录树，挂在 \texttt{/proc}。第三章 \\
+守护进程（daemon） & 长期在后台运行、无终端的进程。第八章 \\
+目标（target） & systemd 中一组单元的集合，例如 \texttt{multi-user.target}。第八章 \\
 用户单元（user unit） & 属于某个登录用户的 systemd 单元。第八章 \\
+轮转（rotation） & 日志按大小或时间切分并清理旧文件的机制。第二十八章 \\
+容器（container） & 共享宿主内核的隔离进程。第二十三章 \\
+\bottomrule
+\end{booktable}
+
+\section{NixOS}
+
+\begin{booktable}{\textwidth}{J{0.5} J{1.5}}
+\toprule
+术语 & 说明 \\
+\midrule
+发行版（distribution） & 内核、工具、包管理器、默认配置与支持渠道的打包。第一章 \\
+可复现（reproducible） & 同样的输入得到同样的产物。第十一章 \\
+散列（hash） & 由内容算出的定长指纹，用于命名 store 路径。第十一章 \\
+导出（derivation） & Nix 的构建配方：输入、脚本、输出路径。第十一章 \\
+闭包（closure） & 一个程序运行所需的全部 store 路径。第十一章 \\
+代（generation） & 一次系统重建留下的完整状态，可整体切换与回滚。第十一章 \\
 原子性（atomic） & 操作要么全部生效，要么完全不生效。第十五章 \\
 订阅通道（channel） & Nix 传统升级方式，指向 nixpkgs 的某个分支。第十五章 \\
-目标（target） & systemd 中一组单元的集合，例如 \texttt{multi-user.target}。第八章 \\
 \bottomrule
 \end{booktable}
