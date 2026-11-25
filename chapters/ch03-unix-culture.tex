@@ -208,7 +208,7 @@ Linux 的工具由社区维护。使用中会遇到缺陷，也需要他人协�
 
 这些约定在几十年中逐层累积形成。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[font=\footnotesize, x=1mm, y=1mm]
   \draw[plum!55, line width=2.4pt] (12,0) -- (34,0);
@@ -222,19 +222,19 @@ Linux 的工具由社区维护。使用中会遇到缺陷，也需要他人协�
     \fill[\era] (\x,0) circle (1.3mm);
     \node[above=1.8mm, text=ink, font=\bfseries\scriptsize] at (\x,1.6) {\year};
   }
-  \node[below=2mm, align=center, text width=20mm] at (12,-1.6) {Unix\\ 贝尔实验室};
-  \node[below=2mm, align=center, text width=20mm] at (34,-1.6) {用 C 重写\\ 可移植};
-  \node[below=2mm, align=center, text width=20mm] at (61,-1.6) {GNU 项目\\ 自由软件};
-  \node[below=2mm, align=center, text width=20mm] at (82,-1.6) {Linux\\ 内核};
-  \node[below=2mm, align=center, text width=20mm] at (100,-1.6) {Debian\\ 社区发行版};
-  \node[below=2mm, align=center, text width=20mm] at (122,-1.6) {Nix\\ 可复现部署};
-  \node[below=2mm, align=center, text width=20mm] at (146,-1.6) {NixOS};
-  \foreach \i/\c/\t in {0/plum/起源, 1/teal/自由软件与内核, 2/ochre/发行版, 3/sage/可复现} {
-    \fill[\c] (30+\i*32,-9) rectangle ++(3,-3);
-    \node[right=1mm, font=\scriptsize, text=muted] at (33+\i*32,-10.5) {\t};
+  \node[below=1.6mm, align=center, text width=20mm] at (12,-1.6) {Unix\\ 贝尔实验室};
+  \node[below=1.6mm, align=center, text width=20mm] at (34,-1.6) {用 C 重写\\ 可移植};
+  \node[below=1.6mm, align=center, text width=20mm] at (61,-1.6) {GNU 项目\\ 自由软件};
+  \node[below=1.6mm, align=center, text width=20mm] at (82,-1.6) {Linux\\ 内核};
+  \node[below=1.6mm, align=center, text width=20mm] at (100,-1.6) {Debian\\ 社区发行版};
+  \node[below=1.6mm, align=center, text width=20mm] at (122,-1.6) {Nix\\ 可复现部署};
+  \node[below=1.6mm, align=center, text width=20mm] at (146,-1.6) {NixOS};
+  % 阶段名放在时间轴上方，各自对应一段颜色，避免与节点说明争同一行
+  \foreach \x/\c/\t in {23/plum/起源, 58/teal/自由软件与内核, 102/ochre/发行版, 135/sage/可复现} {
+    \node[above, font=\footnotesize, text=\c!90!black] at (\x,7.6) {\t};
   }
 \end{tikzpicture}
-\caption{从 Unix 到 NixOS。四种颜色对应四个阶段，每一代都在解决同一类问题：软件的安装、升级、回滚与环境复现}
+\caption{从 Unix 到 NixOS。四种颜色依次对应起源、自由软件与内核、发行版、可复现四阶段}
 \end{figure}
 
 1969 年，贝尔实验室的肯·汤普森与丹尼斯·里奇编写了一个小型操作系统，取名 Unix。它的三项决定影响了后续所有系统：以文件为统一接口、以小工具组合完成任务、以纯文本作为程序间的数据格式。
