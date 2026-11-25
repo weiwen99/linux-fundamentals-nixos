@@ -23,11 +23,11 @@
 \ifx\booklayout\bkPrint
   \bkprinttrue
 \fi
-% 灰度只用于电子墨水屏；手机屏是彩色的，保留彩色版式。
 \ifx\booklayout\bkEreader
   \bknarrowtrue
   \bkgrayscaletrue
 \fi
+% phone 不置 \bkgrayscaletrue：手机屏是彩色的。
 \ifx\booklayout\bkPhone
   \bknarrowtrue
 \fi

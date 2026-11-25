@@ -113,6 +113,13 @@
   \definecolor{sage}{HTML}{8A8A8A}
   \definecolor{plum}{HTML}{2A2A2A}
 \fi
+% 手机是彩色屏，但版面只有 88mm 宽，图经 \figfit 缩放后图内标签会掉到
+% 5pt 上下、结构线也只剩零点几毫米。次要文字与细线沿用灰度版式的深值，
+% 否则这些元素在手机上近乎看不清。
+\ifx\booklayout\bkPhone
+  \definecolor{muted}{HTML}{5A5A5A}
+  \definecolor{rule}{HTML}{8E949C}
+\fi
 
 % ---------------------------------------------------------------- 间距
 \ifbknarrow
