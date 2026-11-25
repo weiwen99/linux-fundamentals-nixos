@@ -44,9 +44,9 @@ pkgs.mkShell {
 }
 \end{nixcode}
 
-Node 项目通常自带 \texttt{package.json}，依赖由 pnpm 装进项目目录的 \texttt{node\_\allowbreak modules}，不进入 store。Nix 只负责提供 Node 运行时本身。这与 Python 的做法不同，但目的一样：不同项目用不同版本的运行时。
+Node 项目通常自带 \texttt{package.json}，依赖由 pnpm 装进项目目录的 \texttt{node\_\allowbreak{}modules}，不进入 store。Nix 只负责提供 Node 运行时本身。这与 Python 的做法不同，但目的一样：不同项目用不同版本的运行时。
 
-如果项目需要“依赖也固定”，可以用 \texttt{pkgs.fetchPnpmDeps} 一类工具把 \texttt{node\_\allowbreak modules} 也纳入 Nix，构建产物完全可复现。个人开发阶段通常不必如此。
+如果项目需要“依赖也固定”，可以用 \texttt{pkgs.\allowbreak{}fetchPnpmDeps} 一类工具把 \texttt{node\_\allowbreak{}modules} 也纳入 Nix，构建产物完全可复现。个人开发阶段通常不必如此。
 
 \section{Rust 与 Go}
 

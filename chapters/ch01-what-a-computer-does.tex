@@ -94,8 +94,18 @@ Linux 严格意义上仅指一个内核。1991 年，林纳斯·托瓦兹发布�
 
 \section{发行版的选择}
 
-可选发行版有数百个，对初学者有实际差别的只有少数几个。下表列出影响学习成本的部分。
+可选发行版有数百个，对初学者有实际差别的只有少数几个。下列对比只列影响学习成本的部分。
 
+\ifbknarrow
+% 五列表在窄页上挤成一团，改用列表，信息不减
+\begin{itemize}
+  \item \textbf{Ubuntu LTS}：两年一个长期支持版，apt。教程最多，代价是默认配置多、跨版本升级易出问题。
+  \item \textbf{Debian}：约两年，更新保守，apt。适合长期稳定的服务器，软件版本偏旧。
+  \item \textbf{Fedora}：约半年，dnf。新硬件支持好，生命周期短、升级频繁。
+  \item \textbf{Arch}：滚动更新，pacman。文档质量高，冲突需自行处理。
+  \item \textbf{NixOS}：半年一个稳定版，nix。可回滚、可复现，学习曲线陡、教程不通用。
+\end{itemize}
+\else
 \begin{center}
 \centering
 \small
@@ -112,6 +122,7 @@ NixOS & 半年一个稳定版 & nix & 需要理解系统构成与回滚能力 & 
 \end{booktable}
 \captionof{table}{五个常见发行版的取舍}
 \end{center}
+\fi
 
 Ubuntu 的第三方教程数量最多，代价是预装与预配置项也最多。Debian 更新保守，在服务器上常见。Fedora 对新硬件支持较好。Arch 的文档（Arch Wiki）质量高，前提是使用者愿意自行维护系统。
 

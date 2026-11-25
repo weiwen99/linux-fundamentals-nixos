@@ -6,7 +6,7 @@
 在终端中执行下列一行。
 
 \begin{shellsession}
-$ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
+$ history | cut -c8- | sort | uniq -c | sort -rn | head -5
    87 ls
    61 cd
    42 vim
@@ -18,7 +18,7 @@ $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
 
 \begin{itemize}
   \item \texttt{history}：输出命令历史，一行一条，行首带序号。
-  \item \texttt{cut -\allowbreak{}d' ' -\allowbreak{}f2-\allowbreak}：以空格为分隔符，从第二段取到行尾，去掉序号。\texttt{-d} 后引号内的一个空格即为分隔符；省略它，整条命令的结果会完全不同。
+  \item \texttt{cut -\allowbreak{}c8-}：按字符位置截取，从第 8 个字符取到行尾。\texttt{history} 的行首是右对齐到 5 列的序号，加两个空格共 7 个字符；\texttt{-c} 按位置切，\texttt{-d} 按分隔符切，两者的差别在序号超过 5 位时才显现。
   \item \texttt{sort}：按字典序排列，使相同的行相邻。
   \item \texttt{uniq -c}：合并相邻的重复行，并在行首写入出现次数。
   \item \texttt{sort -rn}：按数值从大到小重新排序。
@@ -42,9 +42,9 @@ $ history | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -5
   \node[dat] (d1) at (62mm,0)   {\ \ 512\ \ ls -la};
   \node[note] at (62mm,-7mm) {每行一条命令，行首带序号};
 
-  \node[cmd] (c2) at (0,-22mm)  {cut -d' ' -f2-};
+  \node[cmd] (c2) at (0,-22mm)  {cut -c8-};
   \node[dat] (d2) at (62mm,-22mm) {ls -la};
-  \node[note] at (62mm,-29mm) {按空格切段，取第二段到行尾};
+  \node[note] at (62mm,-29mm) {按字符位置截取，跳过序号};
 
   \node[cmd] (c3) at (0,-44mm)  {sort};
   \node[dat] (d3) at (62mm,-44mm) {cd / vim / ls -la / ls};

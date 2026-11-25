@@ -1,0 +1,46 @@
+\chapter{进一步阅读}
+\chapterlead{按用途分组的书与文档。标注了适合的阶段，避免在还不熟悉命令行时去读内核源码。}
+
+\section{手册与文档}
+
+\begin{booktable}{\textwidth}{J{0.9} J{1.1} J{1.0}}
+\toprule
+材料 & 内容 & 何时读 \\
+\midrule
+\texttt{man 7 man-pages} & 手册的组织方式与惯例 & 第一周 \\
+NixOS 官方手册（nixos.org/\allowbreak{}manual） & 安装、配置、模块、包管理 & 装系统前后 \\
+\texttt{man configuration.\allowbreak{}nix} & 全部系统选项的离线文档 & 改配置时 \\
+nixpkgs 手册 & 打包、overlay、语言环境 & 需要自己打包时 \\
+Arch Wiki & 具体硬件的排查记录，跨发行版可参考 & 遇到硬件问题时 \\
+systemd 手册（\texttt{man systemd.\allowbreak{}service}） & 单元文件字段的权威说明 & 写服务时 \\
+\bottomrule
+\end{booktable}
+
+\section{书}
+
+\begin{booktable}{\textwidth}{J{0.9} J{1.1} J{1.0}}
+\toprule
+书名 & 作者 & 说明 \\
+\midrule
+《The Linux Command Line》 & William Shotts & 命令行系统入门，免费电子版 \\
+《How Linux Works》 & Brian Ward & 从启动到网络，讲系统如何运作 \\
+《The Art of Unix Programming》 & Eric S. Raymond & Unix 设计哲学与历史，文化层面的必读 \\
+《Unix 编程艺术》 & 同上，中译本 & 与上一条同书 \\
+《Systems Performance》 & Brendan Gregg & 性能分析的方法与工具，进阶 \\
+《Site Reliability Engineering》 & Google & 运维的工程化视角，第二部分可先读 \\
+\bottomrule
+\end{booktable}
+
+\section{在线资源}
+
+\begin{itemize}
+  \item \texttt{nixos.org/\allowbreak{}learn}：官方学习入口，含视频与手册链接。
+  \item \texttt{search.nixos.\allowbreak{}org}：包与选项的网页检索，比命令行搜索更直观。
+  \item \texttt{discourse.nixos.\allowbreak{}org}：官方论坛，提问前先搜历史帖。
+  \item \texttt{wiki.archlinux.org}：硬件与软件问题的排查记录，多数内容对 NixOS 同样有参考价值，但命令要换成 NixOS 的做法。
+  \item \texttt{exercism.org}：命令行与脚本的练习题，配套自动检查。
+\end{itemize}
+
+\section{不建议早期阅读}
+
+三类材料在基础未稳时会消耗大量时间：内核源码与驱动开发、集群编排（Kubernetes 一类）、以及以“三天精通”为卖点的速成教程。前两类需要先理解进程、内存与网络的实际行为；第三类通常省略了为什么，学到的只是步骤。

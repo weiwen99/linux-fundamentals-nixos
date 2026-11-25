@@ -28,7 +28,7 @@ $ grep -c " 200 " access.log          # 成功多少次
 $ awk '{sum += $10} END {print sum}' access.log            # 总流量
 \end{shellsession}
 
-\texttt{awk} 按空白把每行切分成字段，\texttt{\$1} 是第一列，\texttt{\$9} 是状态码，\texttt{\$10} 是响应字节数。\texttt{END} 块在所有行处理完后执行一次，用来汇总。三条命令的组合表明：不需要专门的日志分析程序，通用文本工具已经够用。
+\texttt{awk} 按空白把每行切分成字段，\texttt{\$1} 是第一列，\texttt{\$9} 是状态码，\texttt{\$10} 是响应字节数。\texttt{END} 块在所有行处理完后执行一次，用来汇总。四条命令的组合表明：不需要专门的日志分析程序，通用文本工具已经够用。
 
 \section{查看文件}
 
@@ -37,10 +37,10 @@ $ cat access.log        # 全文输出，适合短文件
 $ less access.log       # 分页查看，/ 搜索，q 退出
 $ head -3 access.log    # 前三行
 $ tail -2 access.log    # 后两行
-$ tail -f /var/log/syslog   # 持续输出新增内容，Ctrl+C 退出
+$ tail -f access.log       # 持续输出新增内容，Ctrl+C 退出
 \end{shellsession}
 
-\texttt{tail -f} 是排查线上问题的常用手段：先复现问题，再观察日志尾部逐行出现的内容。文件被轮转后 \texttt{-f} 会失效，\texttt{tail -F} 能跟随重命名后的新文件。
+\texttt{tail -f} 是排查线上问题的常用手段：先复现问题，再观察日志尾部逐行出现的内容。文件被轮转后 \texttt{-f} 会失效，\texttt{tail -F} 能跟随重命名后的新文件。NixOS 上多数服务日志不落在文件里，由 journald 统一收集，对应的跟随命令是 \texttt{journalctl -f}，第八章详述。
 
 \begin{toolswap}{cat}{bat}
 \texttt{bat} 在输出时加语法高亮、行号与 Git 修改标记，长文件自动分页。管道中检测到输出不是终端时，它会退化为纯文本，因此可以安全替换脚本里的 \texttt{cat}。
@@ -66,14 +66,14 @@ $ rg -n "hostName" /etc/nixos
 
 \texttt{rg} 默认递归、默认跳过版本控制忽略的路径、默认输出行号与文件名。在代码仓库里，它的速度高于 \texttt{grep -r}，因为跳过了版本控制忽略的文件。
 
-\begin{booktable}{\textwidth}{L{1.143} L{1.044} J{0.812}}
+\begin{booktable}{\textwidth}{L{1.143} L{1.044} J{0.813}}
 \toprule
 任务 & grep & rg \\
 \midrule
 递归搜索 & \texttt{grep -rn\ 模式\ 路径} & \texttt{rg -n 模式 路径} \\
 只列文件名 & \texttt{grep -rl 模式} & \texttt{rg -l 模式} \\
 查找文件类型 & 需配合 \texttt{find} & \texttt{rg -t py 模式} \\
-排除目录 & \texttt{-{}-exclude-dir=} & 默认读 \texttt{.gitignore} \\
+排除目录 & \texttt{-{}-exclude-\allowbreak{}dir=} & 默认读 \texttt{.gitignore} \\
 上下文行 & \texttt{-A 3 -B 3} & \texttt{-A 3 -B 3} \\
 \bottomrule
 \end{booktable}
@@ -92,7 +92,7 @@ $ sed '/^#/d' config.conf                    # 删除注释行
 \texttt{sed -i} 会直接改写文件，且不保留备份。执行前先不加 \texttt{-i} 运行一次，确认输出符合预期。
 
 \begin{toolswap}{sed -i 's/a/b/g'}{sd 'a' 'b'}
-\texttt{sd} 的语法是“找什么、换成什么、在哪个文件”，不必记 \texttt{s///g} 的定界符，正则默认使用与主流语言一致的写法。它输出改动预览，加 \texttt{-p} 直接写入文件。
+\texttt{sd} 的语法是“找什么、换成什么、在哪个文件”，不必记 \texttt{s///g} 的定界符，正则默认使用与主流语言一致的写法。它默认就地改写文件，与 \texttt{sed} 需要 \texttt{-i} 相反；加 \texttt{-p} 只输出改动预览，不写回。
 \end{toolswap}
 
 \section{结构化：cut、sort、uniq、tr、wc}
@@ -113,7 +113,7 @@ $ sort -k10 -n access.log | tail -1           # 响应最大的请求
 
 \begin{shellsession}
 $ awk '{print $9}' access.log | sort | uniq -c | sort -rn
-      3 200
+      4 200
       1 401
       1 404
 \end{shellsession}

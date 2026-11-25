@@ -1,0 +1,174 @@
+\chapter{配置片段库}
+\chapterlead{可整段粘进 \texttt{configuration.nix} 或 \texttt{home.nix} 的常用配置。每段都注明它依赖的章节，遇到不确定的选项先用 \texttt{nixos-option} 核对。}
+
+\section{基础}
+
+\begin{nixcode}
+{ config, pkgs, lib, ... }:
+
+{
+  # 主机与时间
+  networking.hostName = "nixos-lab";
+  networking.networkmanager.enable = true;
+  time.timeZone = "Asia/Shanghai";
+  i18n.defaultLocale = "zh_CN.UTF-8";
+
+  # 中文显示与输入（第十六章）
+  fonts.packages = with pkgs; [ noto-fonts-cjk-sans noto-fonts-cjk-serif sarasa-gothic ];
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [ fcitx5-chinese-addons ];
+  };
+
+  # 常用工具（第十三章）
+  environment.systemPackages = with pkgs; [
+    git vim curl htop jq ripgrep fd
+  ];
+
+  # 自动清理（第十五章）
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
+
+  system.stateVersion = "26.11";
+}
+\end{nixcode}
+
+\section{服务器}
+
+\begin{nixcode}
+{
+  # SSH：只允许密钥登录（第二十五章）
+  services.openssh = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "no";
+      MaxAuthTries = 3;
+    };
+  };
+
+  users.users.deploy = {
+    isNormalUser = true;
+    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... ci" ];
+  };
+
+  # 防火墙（第二十五章）
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 22 80 443 ];
+  };
+
+  # 自动更新但不自动重启（第三十章）
+  system.autoUpgrade = {
+    enable = true;
+    allowReboot = false;
+    dates = "04:00";
+  };
+
+  # 防护与日志（第二十八、三十章）
+  services.fail2ban.enable = true;
+  services.journald.extraConfig = ''
+    SystemMaxUse=1G
+    MaxRetentionSec=30day
+  '';
+}
+\end{nixcode}
+
+\section{服务与证书}
+
+\begin{nixcode}
+{
+  # 静态站点 + 自动证书（第二十六章）
+  services.nginx.enable = true;
+  services.nginx.virtualHosts."example.com" = {
+    forceSSL = true;
+    enableACME = true;
+    root = "/srv/www/example";
+  };
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "you@example.com";
+  };
+
+  # 后端服务（第八章）
+  systemd.services.api = {
+    description = "API service";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      ExecStart = "/srv/api/bin/api";
+      User = "deploy";
+      WorkingDirectory = "/srv/api";
+      Restart = "on-failure";
+      RestartSec = 3;
+      StateDirectory = "api";
+      MemoryMax = "1G";
+    };
+  };
+
+  # 定时备份（第二十七章）
+  services.restic.backups.daily = {
+    repository = "/mnt/backup/restic";
+    passwordFile = "/run/secrets/restic-pass";
+    paths = [ "/home" "/var/lib/api" ];
+    exclude = [ "/home/*/.cache" ];
+    timerConfig = { OnCalendar = "daily"; Persistent = true; };
+    pruneOpts = [ "--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6" ];
+  };
+}
+\end{nixcode}
+
+\section{桌面}
+
+\begin{nixcode}
+{
+  # Hyprland（第十六章）
+  programs.hyprland.enable = true;
+  services.displayManager.ly.enable = true;
+
+  # 状态栏、通知、截图
+  programs.waybar.enable = true;
+  services.mako.enable = true;
+  environment.systemPackages = with pkgs; [ grim slurp wl-clipboard ];
+
+  # 硬件（第十七章）
+  hardware.bluetooth.enable = true;
+  hardware.enableRedistributableFirmware = true;
+  services.tlp.enable = true;
+  services.fwupd.enable = true;
+}
+\end{nixcode}
+
+\section{Home Manager}
+
+\begin{nixcode}
+{ pkgs, ... }:
+
+{
+  home.username = "weiwen";
+  home.homeDirectory = "/home/weiwen";
+  home.stateVersion = "26.11";
+
+  programs.bash.enable = true;
+  programs.git = {
+    enable = true;
+    userName = "Weiwen Zhang";
+    userEmail = "you@example.com";
+    extraConfig = {
+      init.defaultBranch = "main";
+      pull.rebase = true;
+      core.pager = "delta";
+    };
+  };
+  programs.zoxide = { enable = true; enableBashIntegration = true; };
+  programs.starship.enable = true;
+
+  home.packages = with pkgs; [ ripgrep fd bat eza jq ];
+}
+\end{nixcode}

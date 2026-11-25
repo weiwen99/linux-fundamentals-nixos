@@ -51,6 +51,9 @@ build_one() {
   local v=$1
   local pdf="build/$v/main-$v.pdf"
   echo "==> 构建版式 $v"
+  # minted 需要显式告知输出目录，否则在没有缓存时无法写入 Python 产物。
+  mkdir -p "build/$v"
+  export TEXMF_OUTPUT_DIRECTORY="$PWD/build/$v"
   # 首轮常因缺少 .toc/.out 而以非零码结束，判据是 PDF 是否生成；
   # 未生成时再跑一轮，让交叉引用稳定。
   BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true

@@ -82,7 +82,7 @@ $ podman build -t myscript:0.1 .
 $ podman run --rm myscript:0.1
 \end{shellsession}
 
-在 NixOS 上还有另一条路：用 \texttt{dockerTools.buildImage} 在 Nix 里构造镜像，内容和依赖都来自 store，可复现性与系统一致。
+在 NixOS 上还有另一条路：用 \texttt{dockerTools.\allowbreak{}buildImage} 在 Nix 里构造镜像，内容和依赖都来自 store，可复现性与系统一致。
 
 \begin{nixcode}
 pkgs.dockerTools.buildImage {
@@ -110,7 +110,7 @@ pkgs.dockerTools.buildImage {
   \item 运行一个 nginx 容器并映射到 8080，用 \texttt{curl} 验证，再查看日志。
   \item 用卷运行 PostgreSQL，重启容器后确认数据仍在。
   \item 写一个 Containerfile，构建并运行一个打印时间的镜像。
-  \item 用 \texttt{dockerTools.buildImage} 构造同样功能的镜像，比较两者大小。
+  \item 用 \texttt{dockerTools.\allowbreak{}buildImage} 构造同样功能的镜像，比较两者大小。
   \item 判断本机上三个现有服务，哪些适合放进容器，说明理由。
 \end{enumerate}
 

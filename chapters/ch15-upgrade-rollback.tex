@@ -78,7 +78,7 @@ nix.gc = {
 
 \begin{enumerate}
   \item 记录当前版本号与代数，升级一次，比较两者的变化。
-  \item 用 \texttt{-{}-rollback} 回到升级前，再用 \texttt{-{}-switch-generation} 回到升级后的那一代。
+  \item 用 \texttt{-{}-rollback} 回到升级前，再用 \texttt{-{}-switch-\allowbreak{}generation} 回到升级后的那一代。
   \item 重启并在引导菜单里选择旧代，登录后用 \texttt{nixos-version} 确认版本。
   \item 用 \texttt{nix-collect-garbage -{}-dry-run} 查看将释放多少空间，说明数字的来源。
   \item 配置 \texttt{nix.gc}，保留 30 天，重建后用 \texttt{systemctl list-timers} 确认定时器已注册。

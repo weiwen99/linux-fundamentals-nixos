@@ -16,7 +16,7 @@ $ nix search nixpkgs "json"     # 搜索包
 \toprule
 方式 & 生效范围 & 适用场景 \\
 \midrule
-\texttt{environment.\allowbreak systemPackages} & 全系统 & 常用工具，希望所有用户可用 \\
+\texttt{environment.\allowbreak{}systemPackages} & 全系统 & 常用工具，希望所有用户可用 \\
 \texttt{nix profile add} & 当前用户 & 个人工具，不想改系统配置 \\
 \texttt{nix shell} & 当前 shell & 试一个命令，或临时需要某个工具 \\
 \texttt{nix run} & 一次调用 & 只运行一次，不需要留在环境里 \\
@@ -24,7 +24,7 @@ $ nix search nixpkgs "json"     # 搜索包
 \end{booktable}
 
 \begin{notebox}[systemPackages 与 profile 的取舍]
-\texttt{environment.\allowbreak systemPackages} 写在配置里，随重建生效，可回滚，适合大多数情况。\texttt{nix profile} 装在用户目录下，不进入系统配置，重装系统后需要重新添加。日常工具优先写配置；只在试某个软件时用 \texttt{nix shell}。
+\texttt{environment.\allowbreak{}systemPackages} 写在配置里，随重建生效，可回滚，适合大多数情况。\texttt{nix profile} 装在用户目录下，不进入系统配置，重装系统后需要重新添加。日常工具优先写配置；只在试某个软件时用 \texttt{nix shell}。
 \end{notebox}
 
 \section{为项目固定依赖}

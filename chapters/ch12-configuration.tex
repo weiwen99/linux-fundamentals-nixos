@@ -53,7 +53,7 @@ $ man configuration.nix    # 全部选项的离线手册，可搜索
 整数 & \texttt{22} \\
 列表 & \texttt{[ "wheel" "networkmanager" ]} \\
 属性集 & \texttt{\{ ... \}} \\
-路径 & \texttt{./hardware-\allowbreak configuration.nix} \\
+路径 & \texttt{./hardware-\allowbreak{}configuration.nix} \\
 包 & \texttt{pkgs.git} \\
 \bottomrule
 \end{booktable}
@@ -126,7 +126,7 @@ environment.systemPackages = [ pkgs.vim ];
 
 \begin{enumerate}
   \item 用 \texttt{nixos-option} 查出 \texttt{services.openssh} 下三个子选项的当前值与默认值。
-  \item 把 \texttt{environment.systemPackages} 拆到 \texttt{modules/packages.nix}，重建后确认包仍然存在。
+  \item 把 \texttt{environment.\allowbreak{}systemPackages} 拆到 \texttt{modules/packages.nix}，重建后确认包仍然存在。
   \item 用一个 \texttt{lib.mkIf} 让某项配置只在主机名为 \texttt{nixos-lab} 时生效，改主机名后重建，观察差异。
   \item 故意给布尔选项赋一个字符串，阅读报错，说明它指出了哪些信息。
   \item 在 \texttt{man configuration.nix} 中搜索 \texttt{firewall}，找出开放端口的选项名。

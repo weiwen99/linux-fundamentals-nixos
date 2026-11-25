@@ -93,7 +93,7 @@ security.sudo.wheelNeedsPassword = true;
 \texttt{wheelNeedsPassword} 为真时，\texttt{sudo} 要求输入自己的密码，并在一段时间内缓存。把它设为假可以免密提权，代价是任何能操作该账户的人都能取得 root。
 
 \begin{warnbox}[sudo 的正确用法]
-\texttt{sudo} 只对紧跟的那一条命令提权，不开新的 shell。需要连续执行多条管理命令时，逐条加 \texttt{sudo}，而不是执行 \texttt{sudo -i} 后长时间停留在 root shell 中。root shell 里没有“当前目录”提示的额外提醒，一条写错的 \texttt{rm -rf} 无法挽回。
+\texttt{sudo} 只对紧跟的那一条命令提权，不开新的 shell。需要连续执行多条管理命令时，逐条加 \texttt{sudo}，而不是执行 \texttt{sudo -i} 后长时间停留在 root shell 中。root shell 与普通 shell 外观相同，没有额外提示，一条写错的 \texttt{rm -rf} 无法撤销。
 \end{warnbox}
 
 常见错误是把重定向写在 \texttt{sudo} 之外：

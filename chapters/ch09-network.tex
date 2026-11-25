@@ -9,14 +9,14 @@ lo              UNKNOWN  127.0.0.1/8 ::1/128
 enp1s0          UP       192.168.1.42/24 fe80::1c2a:3bff:fe4d:5e6f/64
 $ ip route show default
 default via 192.168.1.1 dev enp1s0 proto dhcp src 192.168.1.42 metric 100
-$ ss -tlnp
+$ ss -tln
 State  Recv-Q Send-Q Local Address:Port Peer Address:Port
 LISTEN 0      128    0.0.0.0:22         0.0.0.0:*
 LISTEN 0      128    127.0.0.1:631      0.0.0.0:*
 $ ping -c 3 1.1.1.1
 \end{shellsession}
 
-四条命令回答四个问题：本机地址、默认网关、正在监听的端口、外网是否通。\texttt{ss -tlnp} 的参数含义：\texttt{t} 是 TCP，\texttt{l} 是监听，\texttt{n} 是数字端口，\texttt{p} 显示进程。\texttt{127.0.0.1:631} 表示只接受本机连接，\texttt{0.0.0.0:22} 表示所有网卡都接受。
+四条命令回答四个问题：本机地址、默认网关、正在监听的端口、外网是否通。\texttt{ss -tln} 的参数含义：\texttt{t} 是 TCP，\texttt{l} 是监听，\texttt{n} 直接显示端口号而不做名称解析。再加 \texttt{p} 可以显示占用端口的进程，普通用户只能看到自己的进程。\texttt{127.0.0.1:631} 表示只接受本机连接，\texttt{0.0.0.0:22} 表示所有网卡都接受。
 
 \begin{booktable}{\textwidth}{L{1.214} J{0.786}}
 \toprule
@@ -102,7 +102,7 @@ Host *.example.com
   Port 2222
 \end{textcode}
 
-此后 \texttt{ssh lab} 等价于完整的长命令。\texttt{ServerAliveInterval} 定期发送心跳，避免闲置连接被中间设备断开。配置支持通配符，可以按域名后缀统一设置。
+此后 \texttt{ssh lab} 等价于完整的长命令。\texttt{Server\allowbreak{}Alive\allowbreak{}Interval} 定期发送心跳，避免闲置连接被中间设备断开。配置支持通配符，可以按域名后缀统一设置。
 
 \section{传输文件}
 
@@ -112,7 +112,7 @@ $ rsync -av --progress ~/lab/ lab:/srv/lab/
 $ rsync -av --delete ~/site/ lab:/srv/site/
 \end{shellsession}
 
-\texttt{scp} 适合单个小文件。\texttt{rsync} 只传输差异部分，适合目录同步；\texttt{-a} 保留权限、时间与符号链接，\texttt{-{}-delete} 让目标端删除源端已不存在的文件。\texttt{-{}-delete} 会让目标端与源端完全一致，路径末尾的斜线方向决定复制的是目录本身还是其内容，第一次使用应先加 \texttt{-n} 试运行。
+\texttt{scp} 适合单个小文件。\texttt{rsync} 只传输差异部分，适合目录同步；\texttt{-a} 保留权限、时间与符号链接，\texttt{-{}-delete} 让目标端删除源端已不存在的文件。\texttt{-{}-delete} 会让目标端与源端完全一致。源路径末尾是否带斜线决定复制的是目录本身还是其中的内容：\texttt{\textasciitilde{}/site/} 把内容写进目标端的 \texttt{site} 目录，\texttt{\textasciitilde{}/site} 则在目标端新建 \texttt{site} 目录再放入内容。第一次使用应先加 \texttt{-n} 试运行。
 
 \section{端口转发}
 

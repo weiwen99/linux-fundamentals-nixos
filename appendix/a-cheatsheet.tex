@@ -1,0 +1,98 @@
+\chapter{命令速查}
+\chapterlead{按任务分组的常用命令。旧命令在前，新工具在后；每行只给最常用的一两种写法。}
+
+\section{文件与目录}
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 命令 & 章节 \\
+\midrule
+查看当前位置 & \texttt{pwd} & 四 \\
+列目录 & \texttt{ls -lh}、\texttt{eza -l} & 四、五 \\
+建目录树 & \texttt{mkdir -p a/b/c} & 五 \\
+复制与移动 & \texttt{cp -r}、\texttt{mv} & 五 \\
+删除 & \texttt{rm -r}、\texttt{rmdir} & 五 \\
+按名查找 & \texttt{find . -name "*.nix"}、\texttt{fd -e nix} & 五 \\
+按大小查找 & \texttt{find . -size +100M}、\texttt{fd -S +100M} & 五 \\
+磁盘占用 & \texttt{du -sh}、\texttt{dust} & 五 \\
+剩余空间 & \texttt{df -h} & 五 \\
+符号链接 & \texttt{ln -sfn 目标 链接} & 五 \\
+\bottomrule
+\end{booktable}
+
+\section{文本}
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 命令 & 章节 \\
+\midrule
+分页查看 & \texttt{less}、\texttt{bat} & 六 \\
+前若干行 & \texttt{head -n} & 六 \\
+跟随日志 & \texttt{tail -f}、\texttt{tail -F} & 六 \\
+模式匹配 & \texttt{grep -n}、\texttt{rg -n} & 六 \\
+递归检索 & \texttt{grep -rn}、\texttt{rg} & 六 \\
+替换 & \texttt{sed -i 's/a/b/g'}、\texttt{sd} & 六 \\
+按列提取 & \texttt{awk '\{print \$1\}'}、\texttt{cut -d} & 六 \\
+排序计数 & \texttt{sort}、\texttt{uniq -c}、\texttt{sort -rn} & 六 \\
+行数统计 & \texttt{wc -l} & 六 \\
+JSON 取值 & \texttt{jq '.a.b'} & 二十一 \\
+\bottomrule
+\end{booktable}
+
+\section{权限与进程}
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 命令 & 章节 \\
+\midrule
+查看权限 & \texttt{ls -l}、\texttt{namei -l} & 七 \\
+改权限 & \texttt{chmod 644}、\texttt{chmod g+w} & 七 \\
+改属主 & \texttt{chown 用户:组} & 七 \\
+默认权限 & \texttt{umask 022} & 七 \\
+提权 & \texttt{sudo 命令} & 七 \\
+进程列表 & \texttt{ps aux}、\texttt{btop} & 八 \\
+按名查进程 & \texttt{pgrep -a} & 八 \\
+结束进程 & \texttt{kill}、\texttt{kill -9} & 八 \\
+服务状态 & \texttt{systemctl status 单元} & 八 \\
+服务日志 & \texttt{journalctl -u 单元 -f} & 八 \\
+本次启动错误 & \texttt{journalctl -b -p err} & 八 \\
+\bottomrule
+\end{booktable}
+
+\section{网络与远程}
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 命令 & 章节 \\
+\midrule
+本机地址 & \texttt{ip -brief address} & 九 \\
+默认网关 & \texttt{ip route show default} & 九 \\
+监听端口 & \texttt{ss -tlnp} & 九 \\
+解析域名 & \texttt{dig +short}、\texttt{getent hosts} & 九 \\
+生成密钥 & \texttt{ssh-keygen -t ed25519} & 九 \\
+免密登录 & \texttt{ssh-copy-id 用户@主机} & 九 \\
+同步目录 & \texttt{rsync -av --delete} & 九 \\
+本地转发 & \texttt{ssh -L 8080:localhost:\allowbreak{}80 主机} & 九 \\
+远程转发 & \texttt{ssh -R 9000:localhost:\allowbreak{}3000 主机} & 九 \\
+\bottomrule
+\end{booktable}
+
+\section{NixOS}
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 命令 & 章节 \\
+\midrule
+重建并切换 & \texttt{sudo nixos-rebuild switch} & 二 \\
+回滚 & \texttt{sudo nixos-rebuild switch -{}-rollback} & 十五 \\
+列代数 & \texttt{sudo nixos-\allowbreak{}rebuild list-\allowbreak{}generations} & 十五 \\
+按 flake 重建 & \texttt{nixos-\allowbreak{}rebuild switch -{}-flake .\#主机} & 十四 \\
+查选项 & \texttt{nixos-option 选项名} & 十二 \\
+临时环境 & \texttt{nix shell nixpkgs\#包} & 十三 \\
+直接运行 & \texttt{nix run nixpkgs\#包 -{}- 参数} & 十三 \\
+搜索包 & \texttt{nix search nixpkgs 关键词} & 十三 \\
+查闭包大小 & \texttt{nix path-info -rSh 路径} & 十一 \\
+依赖原因 & \texttt{nix why-depends a b} & 十一 \\
+清理旧代 & \texttt{sudo nix-\allowbreak{}collect-\allowbreak{}garbage -d} & 十五 \\
+\bottomrule
+\end{booktable}

@@ -116,7 +116,8 @@
 
 % ---------------------------------------------------------------- 间距
 \ifbknarrow
-  \linespread{1.34}
+  % 正文 9pt、行距 11.5pt；再乘 1.28，实际基线距约 14.7pt。
+  \linespread{1.28}
 \else
   \linespread{1.38}
 \fi
@@ -131,8 +132,7 @@
 % 真正的溢出仍会报告。
 \ifbknarrow
   \setlength{\hfuzz}{2pt}
-  \linespread{1.28}
-  % 正文 9pt：行距 1.28 倍后约 11.5pt，接近 6 寸屏的舒适密度。
+  % 9pt 正文配 11.5pt 行距，接近 6 寸屏的舒适密度。
   \AtBeginDocument{\fontsize{9pt}{11.5pt}\selectfont}
   \renewcommand{\texttt}[1]{{\footnotesize\ttfamily #1}}
 \fi
@@ -232,16 +232,18 @@
 \newcolumntype{C}[1]{>{\centering\arraybackslash\hsize=#1\hsize}X}
 \newcolumntype{J}[1]{>{\hsize=#1\hsize}X}
 % 表格允许跨页：窄页上任何一张表都可能高于版心，不可分割的 tabular 会造成无限分页。
+\usepackage{etoolbox}
 \usepackage{xltabular}
 \AtBeginEnvironment{xltabular}{\ifbknarrow\scriptsize\fi}
-% 表格统一走 xltabular：宽页上它通常不跨页，窄页上必须跨页。
-\let\booktable\xltabular
-\let\endbooktable\endxltabular
+% 表格一律用 tabularx：不跨页，因而不会触发 longtable 在页尾拆分时的
+% glue 问题或分页循环。代价是单表不能高于一页，所以正文与附录里的长表
+% 都控制在二三十行以内（术语表按字母分成两张）。
+\let\booktable\tabularx
+\let\endbooktable\endtabularx
 
 
 % ---------------------------------------------------------------- 列表
 \usepackage{enumitem}
-\usepackage{etoolbox}
 \ifbknarrow
   \setlist[itemize]{leftmargin=1.1em, itemsep=2pt, topsep=3pt, parsep=0pt}
   \setlist[enumerate]{leftmargin=1.4em, itemsep=2pt, topsep=3pt, parsep=0pt}
@@ -312,7 +314,6 @@
 
 % 代码块不要贴着页底开始：剩余空间不足时整块移到下一页。
 \usepackage{needspace}
-\usepackage{etoolbox}
 \BeforeBeginEnvironment{shellsession}{\par\needspace{5\baselineskip}}
 \BeforeBeginEnvironment{notebox}{\par\needspace{7\baselineskip}}
 \BeforeBeginEnvironment{warnbox}{\par\needspace{7\baselineskip}}

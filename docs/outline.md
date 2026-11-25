@@ -28,8 +28,8 @@
 
 ## 完成状态
 
-35 章全部成稿，四种版式均可编译（screen / print / ereader / phone）。
-尚未完成的收尾项：附录 A–E（命令速查、配置片段库、术语表、书单、症状索引）。
+35 章与附录 A–E 全部成稿，四种版式均可编译（screen / print / ereader / phone）。
+构建方式、窄版式约束与已知的 longtable 日志噪声见 `docs/build.md`。
 
 ## 各章计划
 
