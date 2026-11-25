@@ -6,6 +6,21 @@
 
 全书 35 章，分五部分：起步、系统、开发、运维、Agent。
 
+## 下载
+
+不需要安装 TeX，四种版式的 PDF 都已放进仓库：
+
+| 文件 | 纸张与字号 | 页数 |
+|---|---|---|
+| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 192 |
+| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 196 |
+| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 385 |
+| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，灰度 | 267 |
+
+页数随版本变化，以文件为准。每个版本的 PDF 也附在
+[Releases](https://github.com/weiwen99/linux-fundamentals-nixos/releases) 里，
+另有源码标签可对照。
+
 ## 目标读者
 
 没写过程序、没碰过命令行、没装过系统的人。读完应当能够：
@@ -43,7 +58,7 @@
 首次运行 `build.sh` 会执行一次 `nix build` 解析工具与字体路径，写入 `build/env.sh`
 与 `build/fonts.tex`，之后复用。命令行二进制来自 Nix store，因此系统级不必安装 TeX。
 
-产物：`build/<版式>/main-<版式>.pdf`。
+产物：`build/<版式>/main-<版式>.pdf`，同时同步到 `dist/` 下的发布文件名。
 
 ## 目录结构
 
@@ -61,7 +76,8 @@ docs/
   outline.md             章节计划与已核实的版本事实
   style.md               文风规范
   fonts.md               字体与许可说明
-build/                   编译产物（不入库）
+build/                   编译中间件（不入库）
+dist/                    四种版式的 PDF（入库，供直接下载）
 ```
 
 ## 许可

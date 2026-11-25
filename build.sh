@@ -47,6 +47,14 @@ fi
 source build/env.sh
 export PATH="$TEXBIN:$POPPLERBIN:$PATH"
 
+# dist/ 里的 PDF 随仓库提交，供没有 TeX 环境的人直接取用，因此由构建脚本同步。
+declare -A DISTNAME=(
+  [screen]=linux-fundamentals-nixos-A4-screen.pdf
+  [print]=linux-fundamentals-nixos-A4-print.pdf
+  [ereader]=linux-fundamentals-nixos-6inch-ereader.pdf
+  [phone]=linux-fundamentals-nixos-phone.pdf
+)
+
 build_one() {
   local v=$1
   local pdf="build/$v/main-$v.pdf"
@@ -62,6 +70,9 @@ build_one() {
   fi
   if [[ -f $pdf ]]; then
     echo "    $pdf ($(pdfinfo "$pdf" | awk '/Pages/{print $2}') 页)"
+    mkdir -p dist
+    cp -f "$pdf" "dist/${DISTNAME[$v]}"
+    echo "    dist/${DISTNAME[$v]}"
   else
     echo "    构建失败：未生成 $pdf" >&2
     return 1
@@ -69,7 +80,8 @@ build_one() {
 }
 
 case "${1:-all}" in
-  clean) rm -rf build dist/*.pdf; echo "已清理" ;;
+  # 只删编译中间件。dist/ 里是随仓库提交的发布件，清理不会碰它们。
+  clean) rm -rf build; echo "已清理 build/" ;;
   all) for v in "${ALL[@]}"; do build_one "$v"; done ;;
   *) build_one "$1" ;;
 esac
