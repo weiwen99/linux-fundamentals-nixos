@@ -206,6 +206,17 @@
 \ifbknarrow\pagestyle{plain}\else\pagestyle{main}\fi
 \renewcommand{\headrulewidth}{0pt}
 
+% 双面版式下补一张不编号的空白页，使下一节从右手页开始。
+% \cleardoublepage 自动插入的空白页会带上页码，这里改用 \pagestyle{empty}。
+\makeatletter
+\newcommand{\bookblankverso}{%
+  \clearpage
+  \if@twoside\ifodd\c@page\else
+    \pagestyle{empty}\null\newpage
+    \ifbknarrow\pagestyle{plain}\else\pagestyle{main}\fi
+  \fi\fi}
+\makeatother
+
 % ---------------------------------------------------------------- 目录
 \usepackage{titletoc}
 \titlecontents{part}[0pt]
@@ -240,8 +251,6 @@
 % 让按比例分配的 X 列多出约两倍行内边距，出现固定的 24pt 溢出。
 \let\booktable\xltabular
 \let\endbooktable\endxltabular
-i
-
 
 % ---------------------------------------------------------------- 列表
 \usepackage{enumitem}

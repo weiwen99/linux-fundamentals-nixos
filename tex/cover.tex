@@ -1,4 +1,5 @@
-\begin{titlepage}
+% 封面用普通页面而非 titlepage 环境：后者以 \cleardoublepage 开头，
+% 在文档第一页会把尚未写入内容的空白页先输出出去，成品 PDF 首页为空白。
 \thispagestyle{empty}
 \ifbknarrow\vspace*{10mm}\else\vspace*{26mm}\fi
 {\small\color{muted}\booktitleen\ \ \textperiodcentered\ \ \booksubtitleen\par}
@@ -15,4 +16,4 @@
 \vspace{2mm}
 {\small\color{muted}\bookdate\ \ \textperiodcentered\ \ \bookedition\par}
 \ifbknarrow\vspace{5mm}\else\vspace{18mm}\fi
-\end{titlepage}
+\clearpage
