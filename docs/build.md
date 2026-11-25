@@ -7,7 +7,7 @@
 | `screen` | A4 | 11pt | 彩色 | `variants/screen.tex` |
 | `print` | A4，内侧加宽 | 11pt | 彩色 | `variants/print.tex` |
 | `ereader` | 91mm × 122mm | 9pt | 灰度 | `variants/ereader.tex` |
-| `phone` | 88mm × 176mm | 9pt | 灰度 | `variants/phone.tex` |
+| `phone` | 88mm × 176mm | 9pt | 彩色 | `variants/phone.tex` |
 
 版式开关在 `tex/layout.tex`：`\booklayout` 决定 `\ifbknarrow`、`\ifbkgrayscale`、
 `\ifbkprint` 与 `\bkside`，`main.tex` 把 `\bkfontsize`、`\bkside` 传给 `ctexbook`。

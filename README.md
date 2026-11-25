@@ -15,7 +15,7 @@
 | [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 192 |
 | [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 196 |
 | [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 385 |
-| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，灰度 | 267 |
+| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 267 |
 
 页数随版本变化，以文件为准。每个版本的 PDF 也附在
 [Releases](https://github.com/weiwen99/linux-fundamentals-nixos/releases) 里，
@@ -40,7 +40,7 @@
 | `screen` | A4，11pt | 电脑屏幕阅读 | 默认版式，彩色插图 |
 | `print` | A4，11pt | 印刷装订 | 内侧加宽装订线，双面排版 |
 | `ereader` | 91 × 122 mm，9pt | 6 寸电子墨水阅读器 | 灰度配色，窄边距 |
-| `phone` | 88 × 176 mm，9pt | 手机竖屏 | 灰度配色，页面更高 |
+| `phone` | 88 × 176 mm，9pt | 手机竖屏 | 彩色配色，页面更高 |
 
 窄版式下若干宽幅示意图会换成等价的表格，避免缩到不可读；时间线一节即为一例。
 

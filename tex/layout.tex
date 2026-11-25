@@ -4,7 +4,7 @@
 %   screen   A4，屏幕阅读（默认）
 %   print    A4，印刷装订，内侧留装订线
 %   ereader  6 寸电子书阅读器（91mm × 122mm），灰度，窄边距
-%   phone    手机竖屏（88mm × 176mm），灰度，窄边距
+%   phone    手机竖屏（88mm × 176mm），彩色，窄边距
 
 \providecommand{\booklayout}{screen}
 
@@ -23,13 +23,13 @@
 \ifx\booklayout\bkPrint
   \bkprinttrue
 \fi
+% 灰度只用于电子墨水屏；手机屏是彩色的，保留彩色版式。
 \ifx\booklayout\bkEreader
   \bknarrowtrue
   \bkgrayscaletrue
 \fi
 \ifx\booklayout\bkPhone
   \bknarrowtrue
-  \bkgrayscaletrue
 \fi
 
 % 字号：标准文档类只接受 10/11/12pt，窄版式先用 10pt 建类，
