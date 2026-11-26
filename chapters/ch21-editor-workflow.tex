@@ -74,7 +74,10 @@ GNU Emacs 31.1
 programs.emacs = {
   enable = true;
   package = pkgs.emacs-nox;
-  extraPackages = epkgs: [ epkgs.magit epkgs.markdown-mode ];
+  extraPackages = epkgs: [
+    epkgs.magit
+    epkgs.markdown-mode
+  ];
   extraConfig = ''
     (setq make-backup-files nil)
     (setq-default indent-tabs-mode nil)

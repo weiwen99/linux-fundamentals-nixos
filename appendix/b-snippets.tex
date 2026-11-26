@@ -4,7 +4,12 @@
 \section{基础}
 
 \begin{nixcode}
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # 主机与时间
@@ -14,7 +19,11 @@
   i18n.defaultLocale = "zh_CN.UTF-8";
 
   # 中文显示与输入（第十八章）
-  fonts.packages = with pkgs; [ noto-fonts-cjk-sans noto-fonts-cjk-serif sarasa-gothic ];
+  fonts.packages = with pkgs; [
+    noto-fonts-cjk-sans
+    noto-fonts-cjk-serif
+    sarasa-gothic
+  ];
   i18n.inputMethod = {
     enable = true;
     type = "fcitx5";
@@ -23,7 +32,13 @@
 
   # 常用工具（第十五章）
   environment.systemPackages = with pkgs; [
-    git vim curl htop jq ripgrep fd
+    git
+    vim
+    curl
+    htop
+    jq
+    ripgrep
+    fd
   ];
 
   # 自动清理（第十七章）
@@ -61,7 +76,11 @@
   # 防火墙（第二十六章）
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 80 443 ];
+    allowedTCPPorts = [
+      22
+      80
+      443
+    ];
   };
 
   # 自动更新但不自动重启（第三十一章）
@@ -116,10 +135,20 @@
   services.restic.backups.daily = {
     repository = "/mnt/backup/restic";
     passwordFile = "/run/secrets/restic-pass";
-    paths = [ "/home" "/var/lib/api" ];
+    paths = [
+      "/home"
+      "/var/lib/api"
+    ];
     exclude = [ "/home/*/.cache" ];
-    timerConfig = { OnCalendar = "daily"; Persistent = true; };
-    pruneOpts = [ "--keep-daily 7" "--keep-weekly 4" "--keep-monthly 6" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
+    pruneOpts = [
+      "--keep-daily 7"
+      "--keep-weekly 4"
+      "--keep-monthly 6"
+    ];
   };
 }
 \end{nixcode}
@@ -135,7 +164,11 @@
   # 状态栏、通知、截图
   programs.waybar.enable = true;
   services.mako.enable = true;
-  environment.systemPackages = with pkgs; [ grim slurp wl-clipboard ];
+  environment.systemPackages = with pkgs; [
+    grim
+    slurp
+    wl-clipboard
+  ];
 
   # 硬件（第十九章）
   hardware.bluetooth.enable = true;
@@ -166,16 +199,28 @@
       core.pager = "delta";
     };
   };
-  programs.zoxide = { enable = true; enableBashIntegration = true; };
+  programs.zoxide = {
+    enable = true;
+    enableBashIntegration = true;
+  };
   programs.starship.enable = true;
 
-  home.packages = with pkgs; [ ripgrep fd bat eza jq ];
+  home.packages = with pkgs; [
+    ripgrep
+    fd
+    bat
+    eza
+    jq
+  ];
 
   # Emacs：终端版，配置写入 default.el（第二十一章）
   programs.emacs = {
     enable = true;
     package = pkgs.emacs-nox;
-    extraPackages = epkgs: [ epkgs.magit epkgs.markdown-mode ];
+    extraPackages = epkgs: [
+      epkgs.magit
+      epkgs.markdown-mode
+    ];
     extraConfig = ''
       (setq make-backup-files nil)
       (global-display-line-numbers-mode 1)

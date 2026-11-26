@@ -51,8 +51,14 @@ $ restic mount /mnt/tmp      # 以文件系统方式浏览历史
 services.restic.backups.daily = {
   repository = "/mnt/backup/restic";
   passwordFile = "/run/secrets/restic-pass";
-  paths = [ "/home/weiwen" "/var/lib/api" ];
-  exclude = [ "/home/weiwen/.cache" "/home/weiwen/lab/tmp" ];
+  paths = [
+    "/home/weiwen"
+    "/var/lib/api"
+  ];
+  exclude = [
+    "/home/weiwen/.cache"
+    "/home/weiwen/lab/tmp"
+  ];
   timerConfig = {
     OnCalendar = "daily";
     Persistent = true;
@@ -76,7 +82,8 @@ services.restic.backups.daily = {
 \begin{shellsession}
 $ restic check                       # 元数据一致性
 $ restic check --read-data-subset=5% # 抽样读取数据块
-$ restic restore latest --target /tmp/verify && diff -r /tmp/verify/home/weiwen/lab ~/lab
+$ restic restore latest --target /tmp/verify \
+    && diff -r /tmp/verify/home/weiwen/lab ~/lab
 \end{shellsession}
 
 第一项快，适合每次备份后自动执行。第二项慢，适合每周一次。第三项是真正的恢复演练，每季度做一次，把恢复过程写成步骤清单。

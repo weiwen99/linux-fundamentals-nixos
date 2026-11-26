@@ -329,8 +329,11 @@
     baselinestretch=1.1
   }
 \else
+  % 代码用 \footnotesize。\small 时每字符约 6.0pt，A4 一行只容 72 列，
+  % 82 列以内的代码仍会被 minted 折行；\footnotesize 下每字符 5.13pt，
+  % screen 容 84 列、print 容 83 列，与 tools/code-format.py 的 83 列上限一致。
   \setminted{
-    fontsize=\small,
+    fontsize=\footnotesize,
     breaklines=true,
     breakanywhere=true,
     autogobble=true,

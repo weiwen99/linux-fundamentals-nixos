@@ -24,7 +24,12 @@ $ man configuration.nix    # 全部选项的离线手册，可搜索
 一份最小的 \texttt{configuration.nix} 是一个函数，接受一组参数，返回一个属性集。
 
 \begin{nixcode}
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -33,13 +38,43 @@ $ man configuration.nix    # 全部选项的离线手册，可搜索
   networking.hostName = "nixos-lab";
   time.timeZone = "Asia/Shanghai";
 
-  environment.systemPackages = with pkgs; [ git vim ];
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+  ];
 
   system.stateVersion = "26.11";
 }
 \end{nixcode}
 
 四点需要注意。花括号外的参数列表是模块收到的上下文，\texttt{config} 可读取其他选项的值，\texttt{pkgs} 是软件包集合，\texttt{...} 表示接受未列出的参数。\texttt{imports} 引入其他模块，最后合并成一个配置。每一项以分号结束，嵌套层级用点号表示。\texttt{with pkgs;} 把包集合的名字引入当前作用域，省去反复写 \texttt{pkgs.}。
+
+\section{格式化}
+
+Nix 文件嵌套两层以后，收尾的 \texttt{\}} 属于哪一层，靠肉眼分辨容易出错。nixfmt 是社区通用的格式化器，本书的 Nix 代码都是它的输出。
+
+\begin{shellsession}
+$ nix shell nixpkgs#nixfmt
+$ nixfmt --strict --width=82 configuration.nix
+$ nixfmt --strict --width=82 --check configuration.nix   # 只检查，不改写
+\end{shellsession}
+
+它的排版规则是固定的：多行结构的收尾括号单独起行，缩进与开启该结构的语句相同；两个及以上元素的列表一项一行。下面对照。
+
+\begin{nixcode}
+services.nginx = {
+  enable = true;
+  virtualHosts."example.org" = {
+    locations."/".proxyPass = "http://127.0.0.1:3000";
+  };
+};
+\end{nixcode}
+
+内层的 \texttt{;\}} 落在 \texttt{virtualHosts} 的列上，外层的 \texttt{;\}} 落在 \texttt{services} 的列上。手工把括号挪一列，nixfmt 会改回来；想改变排版，只能改结构或改名字。
+
+\texttt{--strict} 让换行位置不受原文件影响；不加时格式化器会保留作者的部分换行，同一段配置两个人排不出同一个样子。本书按 82 列排版，A4 版心正好容下，换行位置不由读者屏幕宽度决定。
+
+格式化只动空白与换行，不改语义。配置进 git 之前跑一次，diff 里剩下的就是真正的改动。
 
 \section{选项的类型}
 
@@ -72,7 +107,7 @@ environment.systemPackages = [ pkgs.git ];
 
 # 模块 B
 environment.systemPackages = [ pkgs.vim ];
-# 结果：[ pkgs.git pkgs.vim ]
+# 结果：列表相加，pkgs.git 与 pkgs.vim 都在
 \end{nixcode}
 
 单值冲突时构建失败并指出两处来源，这是有意的设计：两种说法不可能同时成立，让人来选择，而不是悄悄覆盖。
@@ -84,18 +119,24 @@ environment.systemPackages = [ pkgs.vim ];
 \texttt{lib} 提供了一批小函数，最常用的是条件与生成。
 
 \begin{nixcode}
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # 只有笔记本才启用的配置
-  services.thermald.enable = lib.mkIf (config.networking.hostName == "laptop") true;
+  services.tlp.enable = lib.mkIf (config.networking.hostName == "laptop") true;
 
   # 由列表生成多个用户的公钥
   users.users.deploy.openssh.authorizedKeys.keys =
-    map (k: "ssh-ed25519 ${k} deploy") [
-      "AAAA...1"
-      "AAAA...2"
-    ];
+    map (k: "ssh-ed25519 ${k} deploy")
+      [
+        "AAAA...1"
+        "AAAA...2"
+      ];
 }
 \end{nixcode}
 

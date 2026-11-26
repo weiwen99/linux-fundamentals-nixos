@@ -35,7 +35,9 @@ $ nix search nixpkgs "json"     # 搜索包
 
 \begin{nixcode}
 # shell.nix
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.mkShell {
   packages = with pkgs; [
@@ -70,13 +72,18 @@ $ exit                 # 离开，环境消失
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.11";
 
-  outputs = { self, nixpkgs }:
+  outputs =
+    { self, nixpkgs }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-    in {
+    in
+    {
       devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [ python312 ruff ];
+        packages = with pkgs; [
+          python312
+          ruff
+        ];
       };
     };
 }
@@ -94,7 +101,9 @@ $ nix flake lock        # 生成 flake.lock，记录精确版本
 nixpkgs 收录了十万量级的包，仍会有漏网者。最小的打包写法是一个 \texttt{derivation}。
 
 \begin{nixcode}
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.stdenv.mkDerivation {
   pname = "hello-script";

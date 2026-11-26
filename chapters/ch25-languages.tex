@@ -17,14 +17,18 @@ $ nix shell nixpkgs#go --command go version
 
 \begin{nixcode}
 # shell.nix
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.mkShell {
   packages = [
-    (pkgs.python312.withPackages (ps: with ps; [
-      requests
-      pandas
-    ]))
+    (pkgs.python312.withPackages (
+      ps: with ps; [
+        requests
+        pandas
+      ]
+    ))
     pkgs.ruff
     pkgs.mypy
   ];
@@ -38,10 +42,15 @@ pkgs.mkShell {
 \section{Node 与 JavaScript}
 
 \begin{nixcode}
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.mkShell {
-  packages = with pkgs; [ nodejs_22 pnpm ];
+  packages = with pkgs; [
+    nodejs_22
+    pnpm
+  ];
 }
 \end{nixcode}
 
@@ -52,11 +61,16 @@ Node 项目通常自带 \texttt{package.json}，依赖由 pnpm 装进项目目�
 \section{Rust 与 Go}
 
 \begin{nixcode}
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 
 pkgs.mkShell {
   packages = with pkgs; [
-    rustc cargo rustfmt clippy
+    rustc
+    cargo
+    rustfmt
+    clippy
   ];
 }
 \end{nixcode}
@@ -71,7 +85,11 @@ Rust 的依赖由 \texttt{cargo} 管理并缓存在 \texttt{\textasciitilde/.car
 
 \begin{nixcode}
 pkgs.mkShell {
-  packages = with pkgs; [ python312 ruff basedpyright ];
+  packages = with pkgs; [
+    python312
+    ruff
+    basedpyright
+  ];
 
   shellHook = ''
     export VIRTUAL_ENV_DISABLE_PROMPT=1

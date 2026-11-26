@@ -58,7 +58,8 @@ Apple Silicon 的 Mac 需下载 \texttt{aarch64} 镜像，其余平台下载 \te
 
 \begin{shellsession}
 $ lsblk                      # 确认 U 盘设备名，例如 /dev/sdb
-$ sudo dd if=nixos-gnome-26.11-x86_64-linux.iso of=/dev/sdb bs=4M status=progress oflag=sync
+$ sudo dd if=nixos-gnome-26.11-x86_64-linux.iso of=/dev/sdb bs=4M \
+    status=progress oflag=sync
 \end{shellsession}
 
 \texttt{of=} 必须写整块设备（\texttt{/dev/sdb}），不是分区（\texttt{/dev/sdb1}）。写错目标会毁掉那块磁盘上的数据。Windows 上可用 Rufus 或 balenaEtcher，macOS 上同样用 \texttt{dd}，设备名为 \texttt{/dev/rdisk2} 一类。
@@ -178,16 +179,15 @@ $ sudo nano /mnt/etc/nixos/configuration.nix
 
   time.timeZone = "Asia/Shanghai";
   i18n.defaultLocale = "zh_CN.UTF-8";
-\end{nixcode}
 
-文件尚未结束，继续找到用户与软件包部分。
-
-\begin{nixcode}
   services.openssh.enable = true;
 
   users.users.weiwen = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+    ];
     initialPassword = "change-me";
   };
 

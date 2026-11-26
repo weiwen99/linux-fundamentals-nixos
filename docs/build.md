@@ -19,13 +19,20 @@
 ./build.sh clean        # 清理
 ```
 
+编译开始前会跑 `tools/code-format.py --check`，核对每个 Nix 代码块是否与
+`nixfmt --strict --width=82` 的输出一致，并检查括号对齐与 83 列上限（规则见
+`docs/code-style.md`）。不合规时构建停止；`tools/code-format.py` 就地重排。
+`clean` 不触发这项检查。
+
 产物在 `build/<版式>/main-<版式>.pdf`。首次运行由 `nix build` 解析
-TeX Live、poppler-utils 与三个字体包，写入 `build/env.sh` 与 `build/fonts.tex`；
-之后复用，不再联网。
+TeX Live、poppler-utils、三个字体包、nixfmt 与 python3，写入 `build/env.sh` 与
+`build/fonts.tex`；之后复用，不再联网。
 
 ## 窄版式的四条约束
 
-窄页的版心很小：ereader 约 81 × 110 mm，phone 约 76 × 162 mm。四处机制必须避开：
+窄页的版心很小：ereader 约 81 × 110 mm，phone 约 76 × 162 mm。代码块在
+ereader 上每行容 51 列、phone 上 47 列，超过的代码行由 minted 折行（续行前有
+折行符号），这是窄版式无法避免的；A4 两种版式的折行由 83 列上限挡住。四处机制必须避开：
 
 1. 表格一律用 `booktable`（`xltabular` 的别名），并在 `booktable` 上挂
    `\AtBeginEnvironment` 把字号降到 `\scriptsize`。钩子必须挂在 `booktable`：

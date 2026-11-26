@@ -87,7 +87,10 @@ NixOS 中，属于 \texttt{wheel} 组的用户可以通过 \texttt{sudo} 取得�
 \begin{nixcode}
 users.users.weiwen = {
   isNormalUser = true;
-  extraGroups = [ "wheel" "networkmanager" ];
+  extraGroups = [
+    "wheel"
+    "networkmanager"
+  ];
 };
 security.sudo.wheelNeedsPassword = true;
 \end{nixcode}

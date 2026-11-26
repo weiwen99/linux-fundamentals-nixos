@@ -20,12 +20,17 @@ services.prometheus = {
   enable = true;
   exporters.node = {
     enable = true;
-    enabledCollectors = [ "systemd" "processes" ];
+    enabledCollectors = [
+      "systemd"
+      "processes"
+    ];
   };
-  scrapeConfigs = [{
-    job_name = "node";
-    static_configs = [{ targets = [ "127.0.0.1:9100" ]; }];
-  }];
+  scrapeConfigs = [
+    {
+      job_name = "node";
+      static_configs = [ { targets = [ "127.0.0.1:9100" ]; } ];
+    }
+  ];
 };
 \end{nixcode}
 

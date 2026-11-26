@@ -12,10 +12,10 @@
 
 | 文件 | 纸张与字号 | 页数 |
 |---|---|---|
-| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 205 |
-| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 211 |
-| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 394 |
-| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 278 |
+| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 202 |
+| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 208 |
+| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 399 |
+| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 283 |
 
 页数随版本变化，以文件为准。每个版本的 PDF 也附在
 [Releases](https://github.com/weiwen99/linux-fundamentals-nixos/releases) 里，
@@ -53,7 +53,8 @@
 ```
 
 依赖由 Nix 提供：XeLaTeX（TeX Live 2025，含 `ctex`、`minted`、`tcolorbox`、
-`xltabular`、`adjustbox`、`float`）、`poppler-utils`、思源宋体、Sarasa、Recursive。
+`xltabular`、`adjustbox`、`float`）、`poppler-utils`、思源宋体、Sarasa、Recursive、
+`nixfmt`、`python3`。
 
 首次运行 `build.sh` 会执行一次 `nix build` 解析工具与字体路径，写入 `build/env.sh`
 与 `build/fonts.tex`，之后复用。命令行二进制来自 Nix store，因此系统级不必安装 TeX。
@@ -75,7 +76,11 @@ chapters/                正文，一章一个文件
 docs/
   outline.md             章节计划与已核实的版本事实
   style.md               文风规范
+  code-style.md          代码规范（格式化、括号对齐、检查）
+  build.md               构建说明与窄版式约束
   fonts.md               字体与许可说明
+tools/
+  code-format.py         代码块检查与重排（build.sh 会先跑 --check）
 build/                   编译中间件（不入库）
 dist/                    四种版式的 PDF（入库，供直接下载）
 ```

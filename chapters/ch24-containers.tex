@@ -7,7 +7,7 @@
 \begin{nixcode}
 virtualisation.podman = {
   enable = true;
-  dockerCompat = true;    # 提供 docker 命令别名
+  dockerCompat = true; # 提供 docker 命令别名
 };
 \end{nixcode}
 
@@ -61,7 +61,10 @@ virtualisation.oci-containers = {
   backend = "podman";
   containers.caddy = {
     image = "docker.io/library/caddy:2";
-    ports = [ "80:80" "443:443" ];
+    ports = [
+      "80:80"
+      "443:443"
+    ];
     volumes = [ "/var/lib/caddy:/data" ];
   };
 };
@@ -92,7 +95,10 @@ pkgs.dockerTools.buildImage {
   tag = "0.1";
   copyToRoot = pkgs.buildEnv {
     name = "image-root";
-    paths = [ pkgs.bash pkgs.curl ];
+    paths = [
+      pkgs.bash
+      pkgs.curl
+    ];
   };
   config.Cmd = [ "/bin/bash" ];
 }

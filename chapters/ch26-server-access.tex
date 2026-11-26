@@ -49,8 +49,9 @@ users.users.weiwen.openssh.authorizedKeys.keys = [
 # $ echo "ssh-ed25519 ..." >> ~/.ssh/authorized_keys
 
 # 三、从网络拉取（NixOS 特性）
-users.users.weiwen.openssh.authorizedKeys.keys =
-  [ (builtins.readFile ./keys/weiwen.pub) ];
+users.users.weiwen.openssh.authorizedKeys.keys = [
+  (builtins.readFile ./keys/weiwen.pub)
+];
 \end{nixcode}
 
 第一种最稳：公钥随配置走，重建与重装都不会丢。第二种适合临时给同事开权限。第三种把公钥文件放进仓库，便于多人维护。
@@ -60,7 +61,11 @@ users.users.weiwen.openssh.authorizedKeys.keys =
 \begin{nixcode}
 networking.firewall = {
   enable = true;
-  allowedTCPPorts = [ 22 80 443 ];
+  allowedTCPPorts = [
+    22
+    80
+    443
+  ];
   # 只对特定网段开放
   extraCommands = ''
     iptables -A nixos-fw -p tcp -s 10.0.0.0/8 --dport 5432 -j nixos-fw-accept
@@ -87,14 +92,19 @@ users.users.deploy = {
   # 只用于部署，不给 sudo
 };
 
-users.groups.deploy = {};
+users.groups.deploy = { };
 
-security.sudo.extraRules = [{
-  users = [ "weiwen" ];
-  commands = [
-    { command = "/run/current-system/sw/bin/systemctl restart web"; options = [ "NOPASSWD" ]; }
-  ];
-}];
+security.sudo.extraRules = [
+  {
+    users = [ "weiwen" ];
+    commands = [
+      {
+        command = "/run/current-system/sw/bin/systemctl restart web";
+        options = [ "NOPASSWD" ];
+      }
+    ];
+  }
+];
 \end{nixcode}
 
 原则是最小权限：部署账户只拥有部署目录的写权限，不进入 \texttt{wheel} 组；需要频繁执行的单条命令可以单独授权，免去每次输入密码，但授权范围要写到具体命令。

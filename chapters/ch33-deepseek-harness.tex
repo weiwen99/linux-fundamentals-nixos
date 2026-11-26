@@ -40,9 +40,7 @@ $ nix shell nixpkgs#nodejs_24 --command \
 在 NixOS 上，全局安装到系统会污染 profile，推荐写进配置：
 
 \begin{nixcode}
-environment.systemPackages = with pkgs; [
-  nodejs_24
-];
+environment.systemPackages = with pkgs; [ nodejs_24 ];
 
 # 或用临时环境，需要时进入
 # $ nix shell nixpkgs#nodejs_24

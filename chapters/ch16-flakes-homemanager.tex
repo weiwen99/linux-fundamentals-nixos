@@ -7,7 +7,10 @@
 flakes 是 Nix 的实验特性，需要显式开启。
 
 \begin{nixcode}
-nix.settings.experimental-features = [ "nix-command" "flakes" ];
+nix.settings.experimental-features = [
+  "nix-command"
+  "flakes"
+];
 \end{nixcode}
 
 写进 \texttt{configuration.nix} 并重建后，\texttt{nix flake} 与 \texttt{nixos-rebuild -{}-flake} 可用。
@@ -31,10 +34,17 @@ $ nixos-rebuild switch --flake .#nixos-lab
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
     let
       system = "x86_64-linux";
-    in {
+    in
+    {
       nixosConfigurations.nixos-lab = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
@@ -88,7 +98,11 @@ Home Manager 管理用户级的东西：shell 配置、编辑器配置、用户�
     extraConfig.init.defaultBranch = "main";
   };
 
-  home.packages = with pkgs; [ ripgrep fd jq ];
+  home.packages = with pkgs; [
+    ripgrep
+    fd
+    jq
+  ];
 }
 \end{nixcode}
 
