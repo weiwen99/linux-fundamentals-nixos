@@ -1,0 +1,132 @@
+\chapter{硬件：显卡、蓝牙与电源}
+\label{ch:hardware}
+\chapterlead{硬件支持由内核模块与固件决定。本章处理三件最常出问题的事：显卡加速、蓝牙与无线、笔记本的休眠与电源管理，并说明出问题时如何判断是哪一层。}
+
+\section{起步：确认硬件被识别}
+
+\begin{shellsession}
+$ lspci -k | grep -A2 -E "VGA|3D"
+$ lsusb
+$ rfkill list
+$ dmesg | grep -i -E "firmware|error" | tail -20
+\end{shellsession}
+
+\texttt{lspci -k} 列出 PCI 设备与正在使用的内核驱动，\texttt{-A2} 展开两行，能看到驱动名与模块名。\texttt{lsusb} 列出 USB 设备，蓝牙适配器通常在此。\texttt{rfkill list} 显示无线与蓝牙的软硬件开关状态。\texttt{dmesg} 中的固件加载失败会直接写出缺失的文件名。
+
+\section{显卡}
+
+Intel 与 AMD 的集成显卡由内核自带的驱动支持，通常不需要额外配置。NVIDIA 独显需要在配置中选择驱动版本。
+
+\begin{nixcode}
+# NVIDIA 专有驱动
+services.xserver.videoDrivers = [ "nvidia" ];
+hardware.nvidia = {
+  modesetting.enable = true;
+  open = false;          # 新卡可选 true
+  nvidiaSettings = true;
+  package = config.boot.kernelPackages.nvidiaPackages.stable;
+};
+\end{nixcode}
+
+\texttt{open = true} 使用开源内核模块，可用于 Turing 及更新的显卡；更老的卡需要闭源模块。选错版本的表现是登录后黑屏或分辨率异常，回滚一代即可恢复。
+
+\begin{nixcode}
+# AMD 与 Intel 需要的图形加速与视频解码
+hardware.graphics = {
+  enable = true;
+  extraPackages = with pkgs; [ vaapiVdpau libvdpau-va-gl ];
+};
+\end{nixcode}
+
+验证是否启用硬件加速：
+
+\begin{shellsession}
+$ glxinfo | grep "OpenGL renderer"
+$ vainfo | head -5
+\end{shellsession}
+
+第一行应显示显卡型号而不是 llvmpipe（软件渲染）。\texttt{vainfo} 列出可用的视频解码配置，浏览器播放视频卡顿时值得检查。
+
+\section{蓝牙与无线}
+
+\begin{nixcode}
+hardware.bluetooth = {
+  enable = true;
+  powerOnBoot = true;
+};
+
+networking.networkmanager.enable = true;
+hardware.enableRedistributableFirmware = true;
+\end{nixcode}
+
+\texttt{enableRedistributableFirmware} 提供部分网卡与无线芯片需要的固件。缺固件的表现是设备出现在 \texttt{lspci} 里，但没有对应的网络接口，\texttt{dmesg} 中能看到 \texttt{firmware} 加载失败。
+
+手柄、耳机等设备用 \texttt{bluetoothctl} 配对：
+
+\begin{shellsession}
+$ bluetoothctl
+> power on
+> scan on
+> pair XX:XX:XX:XX:XX:XX
+> connect XX:XX:XX:XX:XX:XX
+> trust XX:XX:XX:XX:XX:XX
+\end{shellsession}
+
+\section{电源与休眠}
+
+笔记本的休眠需要在配置中声明交换分区或交换文件。
+
+\begin{nixcode}
+swapDevices = [ { device = "/swapfile"; size = 8192; } ];
+
+powerManagement = {
+  enable = true;
+  resumeCommands = "systemctl restart bluetooth";
+};
+
+services.upower.enable = true;
+services.tlp.enable = true;
+\end{nixcode}
+
+\texttt{resumeCommands} 处理唤醒后蓝牙失灵这类常见问题。\texttt{tlp} 负责电源策略，可按电池与交流电分别设置。
+
+\section{定位问题在哪一层}
+
+硬件问题容易误判。按下列顺序缩小范围。
+
+\begin{enumerate}
+  \item \texttt{lspci} 与 \texttt{lsusb} 里能否看到设备。看不到是硬件或供电问题，与软件无关。
+  \item \texttt{lspci -k} 是否列出了驱动。没有驱动是内核模块问题。
+  \item \texttt{dmesg} 是否报固件缺失。缺失就补固件。
+  \item 驱动加载但功能异常，通常是配置或用户态服务的问题，例如权限、组、session。
+  \item 换一个内核版本或换一代系统测试，能区分是版本回归还是长期如此。
+\end{enumerate}
+
+\begin{shellsession}
+$ journalctl -b -p err
+$ systemctl status bluetooth
+$ cat /proc/cmdline
+\end{shellsession}
+
+\texttt{/proc/cmdline} 显示启动参数，排查显卡与休眠问题时经常需要临时加参数，例如 \texttt{nvidia-drm.modeset=1}。临时参数写在引导菜单里，确认有效后再写进配置。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{lspci -k} 列出本机三块设备及其驱动，指出哪一块是显卡。
+  \item 用 \texttt{glxinfo} 确认是否在使用硬件渲染，记录渲染器名称。
+  \item 配对一个蓝牙设备，断开后重新连接，记录 \texttt{bluetoothctl} 的输出。
+  \item 配置交换文件与休眠，合盖后唤醒，检查蓝牙与网络是否正常。
+  \item 用 \texttt{dmesg} 找出本次启动中的一条固件相关消息，说明它的含义。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 \texttt{lspci}、\texttt{lsusb}、\texttt{rfkill} 判断设备是否被识别；
+  \item 为 NVIDIA、AMD、Intel 显卡写出对应配置，并验证硬件加速；
+  \item 启用蓝牙与无线，解释固件缺失的表现；
+  \item 配置交换分区与休眠，处理唤醒后的服务异常；
+  \item 按五步顺序判断硬件问题出在哪一层。
+\end{itemize}
+\end{checkpoint}

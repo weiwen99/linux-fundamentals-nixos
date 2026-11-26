@@ -179,6 +179,13 @@
   {\thesection}{0.7em}{}
 \titlespacing*{\section}{0pt}{20pt}{9pt}
 
+% 小节标题不留在页底：后面至少留六行，否则整个标题移到下一页。
+\makeatletter
+\let\book@oldsection\section
+\renewcommand{\section}{%
+  \@ifstar{\book@oldsection*}{\bookneedspace{6\baselineskip}\book@oldsection}}
+\makeatother
+
 \titleformat{\subsection}
   {\normalsize\bfseries\color{ink!85}}
   {\thesubsection}{0.6em}{}
@@ -254,7 +261,7 @@
 \usepackage{xltabular}
 % 这一行目前不生效：\AtBeginEnvironment 改写的是 \begin，只在环境名正是
 % xltabular 时插钩子，而正文写的是 \begin{booktable}。改成 {booktable}
-% 即生效（窄版式表格缩到 \scriptsize），但会改变 57 张表在窄页上的观感，
+% 即生效（窄版式表格缩到 \scriptsize），但会改变六十来张表在窄页上的观感，
 % 且解决不了长标识符压进邻列的问题，取舍见 docs/build.md。
 \AtBeginEnvironment{xltabular}{\ifbknarrow\scriptsize\fi}
 % 表格一律用 xltabular（longtable 之上加 X 列）：可跨页，因此窄页上的长表
@@ -336,31 +343,37 @@
 \newminted{nix}{}
 \newminted{text}{}
 
-% 代码块不要贴着页底开始：剩余空间不足时整块移到下一页。
-\usepackage{needspace}
-\BeforeBeginEnvironment{shellsession}{\par\needspace{5\baselineskip}}
-\BeforeBeginEnvironment{notebox}{\par\needspace{7\baselineskip}}
-\BeforeBeginEnvironment{warnbox}{\par\needspace{7\baselineskip}}
-\BeforeBeginEnvironment{culturenote}{\par\needspace{8\baselineskip}}
-\BeforeBeginEnvironment{lab}{\par\needspace{10\baselineskip}}
-\BeforeBeginEnvironment{checkpoint}{\par\needspace{10\baselineskip}}
-\BeforeBeginEnvironment{toolswap}{\par\needspace{7\baselineskip}}
-\BeforeBeginEnvironment{nixcode}{\par\needspace{9\baselineskip}}
-\BeforeBeginEnvironment{textcode}{\par\needspace{5\baselineskip}}
+% 代码块与表格不要贴着页底开始：剩余空间不足时整块移到下一页。
+% 提示框是不可分割的整体，TeX 本来就会整块后移，无需预留。
+% 不用 needspace 宏包：它靠一个 \penalty -100 制造断点，页面后段一旦溢出，
+% TeX 会在代价比较中选中这个断点，即使当前页还剩七成空间，于是留下大片空白。
+% 这里改成直接比较剩余高度，只在确实放不下时 \newpage。
+\makeatletter
+\newcommand{\bookneedspace}[1]{%
+  \par
+  \begingroup
+    \dimen@=#1\relax
+    \ifdim\pagegoal<\maxdimen
+      \ifdim\dimen@>\pagegoal-\pagetotal\relax
+        \newpage
+      \fi
+    \fi
+  \endgroup}
+\makeatother
+\BeforeBeginEnvironment{shellsession}{\bookneedspace{5\baselineskip}}
+\BeforeBeginEnvironment{nixcode}{\bookneedspace{9\baselineskip}}
+\BeforeBeginEnvironment{textcode}{\bookneedspace{5\baselineskip}}
+% 表格可跨页且会重复表头，只需保证表头与两行数据放得下，不要整表预留。
+\BeforeBeginEnvironment{booktable}{\bookneedspace{5\baselineskip}}
 
 % ---------------------------------------------------------------- 提示框
 \usepackage[most]{tcolorbox}
-% 是否允许跨页由键 bkbreak 控制。宏不能在此处携带逗号：pgfkeys 在展开前
-% 先按逗号切分选项，宏体里的逗号会被当成键名的一部分。
-\ifbknarrow
-  % 窄版式下 breakable 与 needspace 相互作用会触发无限分页，改为不可分割的框。
-  \tcbset{bkbreak/.style={}}
-\else
-  \tcbset{bkbreak/.style={breakable}}
-\fi
+% 提示框一律不可分割。允许跨页时，框首或框尾常单独留在页边，只剩标题加一行，
+% 比整块移到下一页更难读。不可分割的代价是框前面的页尾留白，取舍见 docs/build.md。
+\newcommand{\bkbreak}{}
 
 \newtcolorbox{notebox}[1][提示]{%
-  enhanced, bkbreak,
+  enhanced,
   colback=paper, colframe=ink!55,
   boxrule=0pt, leftrule=2pt, arc=0pt, outer arc=0pt,
   left=10pt, right=10pt, top=8pt, bottom=8pt,
@@ -368,7 +381,7 @@
   before upper={\bfseries\small\color{ink}#1\par\vspace{3pt}}%
 }
 \newtcolorbox{warnbox}[1][注意]{%
-  enhanced, bkbreak,
+  enhanced,
   colback=paper, colframe=ink!85,
   boxrule=0pt, leftrule=2pt, arc=0pt, outer arc=0pt,
   left=10pt, right=10pt, top=8pt, bottom=8pt,
@@ -376,7 +389,7 @@
   before upper={\bfseries\small\color{ink}#1\par\vspace{3pt}}%
 }
 \newtcolorbox{checkpoint}[1][本章检查点]{%
-  enhanced, bkbreak,
+  enhanced,
   colback=white, colframe=rule,
   boxrule=0.5pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
@@ -384,7 +397,7 @@
   before upper={\bfseries\small\color{ink}#1\par\vspace{4pt}}%
 }
 \newtcolorbox{lab}[1][十分钟上手]{%
-  enhanced, bkbreak,
+  enhanced,
   colback=white, colframe=teal!70,
   boxrule=0pt, leftrule=2.5pt, arc=0pt, outer arc=0pt,
   left=10pt, right=10pt, top=7pt, bottom=7pt,
@@ -392,7 +405,7 @@
   before upper={\bfseries\small\color{teal}#1\par\vspace{4pt}}%
 }
 \newtcolorbox{culturenote}{%
-  enhanced, bkbreak,
+  enhanced,
   colback=ochre!5, colframe=ochre!70,
   boxrule=0pt, leftrule=2pt, arc=0pt, outer arc=0pt,
   left=10pt, right=10pt, top=7pt, bottom=7pt,
@@ -400,7 +413,7 @@
   before upper={\bfseries\small\color{ochre}Unix 文化\par\vspace{3pt}}%
 }
 \newtcolorbox{toolswap}[2]{%
-  enhanced, bkbreak,
+  enhanced,
   colback=paper, colframe=rule,
   boxrule=0pt, leftrule=2pt, arc=0pt, outer arc=0pt,
   left=10pt, right=10pt, top=7pt, bottom=7pt,

@@ -5,17 +5,18 @@
 \toprule
 现象 & 第一条命令 & 章 \\
 \midrule
-命令找不到 & \texttt{command -v 名字}；\texttt{echo \$PATH} & 四 \\
-权限不足 & \texttt{namei -l 路径} & 七 \\
-文件不存在 & \texttt{pwd}；\texttt{ls -l 路径} & 四、五 \\
-提示符变成 \texttt{>} & 按 \texttt{Ctrl+C} 放弃该行 & 四 \\
-磁盘写满 & \texttt{df -h}；\texttt{du -xh /} & 二十九 \\
-内存耗尽、进程被杀 & \texttt{journalctl -k} 搜 OOM & 二十九 \\
-服务起不来 & \texttt{systemctl status 单元} & 八、二十九 \\
-端口被占用 & \texttt{ss -tlnp | grep 端口} & 九 \\
-能 ping 通但打不开网页 & \texttt{dig +short 域名} & 九、二十九 \\
-SSH 连不上 & \texttt{ss -tlnp}；查 sshd 日志 & 二十五 \\
-SSH 要求密码而非密钥 & \texttt{ls -l \textasciitilde/.ssh} & 九 \\
+\endhead
+命令找不到 & \texttt{command -v 名字}；\texttt{echo \$PATH} & \ref{ch:first-terminal} \\
+权限不足 & \texttt{namei -l 路径} & \ref{ch:permissions} \\
+文件不存在 & \texttt{pwd}；\texttt{ls -l 路径} & \ref{ch:first-terminal}、\ref{ch:files-and-dirs} \\
+提示符变成 \texttt{>} & 按 \texttt{Ctrl+C} 放弃该行 & \ref{ch:first-terminal} \\
+磁盘写满 & \texttt{df -h}；\texttt{du -xh /} & \ref{ch:troubleshooting} \\
+内存耗尽、进程被杀 & \texttt{journalctl -k} 搜 OOM & \ref{ch:troubleshooting} \\
+服务起不来 & \texttt{systemctl status 单元} & \ref{ch:processes}、\ref{ch:troubleshooting} \\
+端口被占用 & \texttt{ss -tlnp | grep 端口} & \ref{ch:network} \\
+能 ping 通但打不开网页 & \texttt{dig +short 域名} & \ref{ch:network}、\ref{ch:troubleshooting} \\
+SSH 连不上 & \texttt{ss -tlnp}；查 sshd 日志 & \ref{ch:server-access} \\
+SSH 要求密码而非密钥 & \texttt{ls -l \textasciitilde/.ssh} & \ref{ch:network} \\
 \bottomrule
 \end{booktable}
 
@@ -23,19 +24,20 @@ SSH 要求密码而非密钥 & \texttt{ls -l \textasciitilde/.ssh} & 九 \\
 \toprule
 现象 & 第一条命令 & 章 \\
 \midrule
-重建失败、报选项不存在 & \texttt{nixos-option} 核对拼写 & 十二 \\
-重建后服务异常 & \texttt{nixos-rebuild -{}-rollback} & 十五 \\
-系统起不来 & 引导菜单选旧代；或 \texttt{nixos-enter} & 十五、二十九 \\
-磁盘占用持续增长 & \texttt{nix-collect-garbage -{}-dry-run} & 十五 \\
-中文显示为方框 & 检查 \texttt{fonts.packages} & 十六 \\
-中文无法上屏 & 查输入法环境变量与 fcitx5 & 十六 \\
-笔记本唤醒后蓝牙失灵 & \texttt{powerManagement.\allowbreak resumeCommands} & 十七 \\
-硬件没被识别 & \texttt{lspci -k}；\texttt{dmesg} 查固件 & 十七 \\
-显卡驱动后黑屏 & 引导菜单选旧代，换驱动版本 & 十五、十七 \\
-证书申请失败 & \texttt{journalctl -u acme-域名} & 二十六 \\
-备份成功但无法恢复 & \texttt{restic check} 抽样校验 & 二十七 \\
-Agent 改动范围失控 & \texttt{git status --short} & 三十四 \\
-Agent 成本异常 & 拆分会话，换小模型 & 三十三、三十四 \\
+\endhead
+重建失败、报选项不存在 & \texttt{nixos-option} 核对拼写 & \ref{ch:configuration} \\
+重建后服务异常 & \texttt{nixos-rebuild -{}-rollback} & \ref{ch:upgrade-rollback} \\
+系统起不来 & 引导菜单选旧代；或 \texttt{nixos-enter} & \ref{ch:upgrade-rollback}、\ref{ch:troubleshooting} \\
+磁盘占用持续增长 & \texttt{nix-collect-garbage -{}-dry-run} & \ref{ch:upgrade-rollback} \\
+中文显示为方框 & 检查 \texttt{fonts.packages} & \ref{ch:desktop} \\
+中文无法上屏 & 查输入法环境变量与 fcitx5 & \ref{ch:desktop} \\
+笔记本唤醒后蓝牙失灵 & \texttt{powerManagement.\allowbreak resumeCommands} & \ref{ch:hardware} \\
+硬件没被识别 & \texttt{lspci -k}；\texttt{dmesg} 查固件 & \ref{ch:hardware} \\
+显卡驱动后黑屏 & 引导菜单选旧代，换驱动版本 & \ref{ch:upgrade-rollback}、\ref{ch:hardware} \\
+证书申请失败 & \texttt{journalctl -u acme-域名} & \ref{ch:public-service} \\
+备份成功但无法恢复 & \texttt{restic check} 抽样校验 & \ref{ch:backup} \\
+Agent 改动范围失控 & \texttt{git status --short} & \ref{ch:agent-safety} \\
+Agent 成本异常 & 拆分会话，换小模型 & \ref{ch:oh-my-pi}、\ref{ch:agent-safety} \\
 \bottomrule
 \end{booktable}
 

@@ -1,0 +1,154 @@
+\chapter{给 Agent 一个安全的家}
+\label{ch:agent-safety}
+\chapterlead{Agent 的权限等于运行它的用户的权限。本章把这一点落到具体做法：隔离账户、限权目录、密钥隔离、审查改动、成本上限，五条措施共同构成边界。}
+
+\section{起步：先算清最坏情况}
+
+在放开任何权限之前，回答一个问题：如果这个 Agent 完全按最坏的方式执行命令，会损失什么。
+
+\begin{enumerate}
+  \item 它能读到哪些文件。包括 SSH 私钥、浏览器 cookie、其他项目源码。
+  \item 它能写哪些目录。包括正在开发但未提交的改动。
+  \item 它能访问哪些网络目标。包括内网服务、生产数据库。
+  \item 它能执行哪些命令。是否包含 \texttt{sudo}。
+\end{enumerate}
+
+四个答案构成威胁模型。多数事故不是因为模型“有恶意”，而是因为它把“删除临时文件”理解成了 \texttt{rm -rf} 一个范围过大的路径。
+
+\section{隔离账户}
+
+\begin{shellsession}
+$ sudo useradd -m -s /bin/bash agent
+$ sudo -u agent -i
+$ id
+\end{shellsession}
+
+用独立的普通用户运行 Agent，不给 \texttt{wheel} 组。这样它能碰到的只有自己的家目录与显式授权的目录。工作目录通过组权限或 ACL 共享，而不是把整个 \texttt{/home} 开放。
+
+\begin{shellsession}
+$ sudo chgrp -R agent-dev /srv/project
+$ sudo chmod -R g+rwX /srv/project
+\end{shellsession}
+
+代价是多一层切换。值得：这层隔离把“误删家目录”限制在 \texttt{/home/agent} 之内。
+
+\section{限权目录}
+
+如果不需要整机隔离，至少把工作范围限制在一个目录。
+
+\begin{booktable}{\textwidth}{J{0.815} J{1.185}}
+\toprule
+位置 & 建议 \\
+\midrule
+\endhead
+项目目录 & 允许读写，\texttt{.git} 允许读、谨慎写 \\
+家目录其余部分 & 只读或不可见 \\
+\texttt{\textasciitilde/.ssh} & 完全排除 \\
+\texttt{/etc}、\texttt{/var/lib} & 只读，且需 \texttt{sudo} \\
+\bottomrule
+\end{booktable}
+
+\texttt{.git} 需要特别说明：Agent 提交本身不是问题，改写历史（\texttt{reset -{}-hard}、\texttt{filter-branch}）会丢失工作。可以在 \texttt{AGENTS.md} 里明确禁止，也可以把 \texttt{git} 的破坏性命令替换成包装脚本，执行前要求确认。
+
+\section{密钥隔离}
+
+三类凭据必须与 Agent 隔离。
+
+\begin{booktable}{\textwidth}{J{0.889} J{1.111}}
+\toprule
+凭据 & 风险 \\
+\midrule
+\endhead
+SSH 私钥 & 可登录全部授权主机 \\
+云平台令牌 & 可创建、删除、计费 \\
+模型 API 密钥 & 可被读取后用于他人消费 \\
+\bottomrule
+\end{booktable}
+
+做法：给 Agent 单独的开发专用密钥，限制在测试主机；云令牌使用最小权限与有效期；模型密钥通过环境变量注入，不写入任何被 Agent 读取的文件。
+
+\begin{shellsession}
+$ env | grep -i -E "key|token" | sed 's/=.*/=<redacted>/'
+\end{shellsession}
+
+定期检查环境变量中有哪些凭据，比事后追查便宜。
+
+\section{审查改动}
+
+Agent 的产出必须经过差异审查，这一步不能省。
+
+\begin{shellsession}
+$ git status --short
+$ git diff
+$ git diff --stat
+$ git stash list
+\end{shellsession}
+
+四步依次确认：改了哪些文件、改了什么、规模是否合理、有没有未提交的旧改动被覆盖。规模异常是最强的信号：修一个函数却改了三十个文件，通常意味着它误解了任务。
+
+审查时重点看三类改动：删除、权限位、以及依赖清单。这三类改动的影响面远大于普通逻辑修改。
+
+\section{成本与速率}
+
+\begin{enumerate}
+  \item 设置提供方的用量上限，而不是只靠自觉。
+  \item 长任务拆成多个短会话，每段结束开新会话。
+  \item 简单任务用小模型，复杂任务再换大模型。
+  \item 需要联网检索的任务单独核算，搜索比推理更贵。
+\end{enumerate}
+
+\begin{shellsession}
+$ omp --plan
+$ omp --smol <小模型>
+\end{shellsession}
+
+先规划再执行，能避免“方向错了还跑了半小时”的情况。
+
+\section{一份可执行的规则清单}
+
+把下列内容写进项目的 \texttt{AGENTS.md}，作为给 Agent 的边界。
+
+\begin{textcode}
+## 允许
+- 读写 src/ 与 tests/
+- 运行 pnpm test、pnpm build、pnpm lint
+- 读取 .git 历史
+
+## 需要确认
+- 修改 package.json 的依赖
+- 删除任何文件
+- 执行 git 的 reset、rebase、push
+
+## 禁止
+- 读写 ~/.ssh、~/.config、../ 之外的目录
+- 联网上传任何文件
+- 使用 sudo
+- 修改 migrations/
+\end{textcode}
+
+这份清单同时也是给协作者的说明书。能写清楚的边界，比“注意安全”这种提醒有用。
+
+\begin{notebox}[规则不等于强制]
+写在 \texttt{AGENTS.md} 里的规则靠模型遵守，不是内核强制。真正的强制来自账户权限、目录权限与网络策略。规则负责减少误判，权限负责兜底。
+\end{notebox}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 为当前项目写一份威胁模型，回答四个问题各一句。
+  \item 创建一个隔离账户，只授权一个项目目录，验证它读不到 \texttt{\textasciitilde/.ssh}。
+  \item 故意让 Agent 做一次超范围操作（例如删除测试目录），观察是否被权限挡住。
+  \item 写一份 \texttt{AGENTS.md} 的允许、需确认、禁止三段。
+  \item 设置提供方用量上限，记录当前已用量与预算。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用四个问题建立威胁模型；
+  \item 用独立账户与组权限实施隔离；
+  \item 说明三类凭据的风险与隔离做法；
+  \item 按四步审查 Agent 的改动，识别高风险改动类型；
+  \item 区分“规则”与“强制”，并用权限兜底。
+\end{itemize}
+\end{checkpoint}

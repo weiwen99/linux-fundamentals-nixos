@@ -1,0 +1,151 @@
+\chapter{权限、用户与 sudo}
+\label{ch:permissions}
+\chapterlead{Linux 的权限由内核强制执行，不是界面提示。本章说明所有者与模式位的含义、共享目录的正确做法、管理员权限的取得方式，以及权限事故的排查顺序。}
+
+\section{起步：造一个共享目录}
+
+三名同事需要共同编辑一份文档，其他人只能读。
+
+\begin{shellsession}
+$ sudo groupadd project
+$ sudo mkdir -p /srv/project
+$ sudo chgrp project /srv/project
+$ sudo chmod 2775 /srv/project
+$ sudo usermod -aG project weiwen
+$ ls -ld /srv/project
+drwxrwsr-x 2 root project 4096 Nov 24 10:12 /srv/project
+\end{shellsession}
+
+输出中的 \texttt{rwxrwsr-x} 有十位。第一位 \texttt{d} 表示目录，后九位分三组：所有者、所属组、其他人，每组三位分别是读、写、执行。组权限位上的 \texttt{s} 表示设置组 ID，新建文件自动继承 \texttt{project} 组，这正是共享目录需要的行为。
+
+加入新组后，当前 shell 不会立即生效，需要重新登录或执行 \texttt{newgrp project}。
+
+\section{三类身份与三种权限}
+
+\begin{booktable}{\textwidth}{L{0.967} L{1.190} J{0.843}}
+\toprule
+权限 & 对文件 & 对目录 \\
+\midrule
+\endhead
+读 \texttt{r} & 读取内容 & 列出目录中的名字 \\
+写 \texttt{w} & 修改内容 & 新建、删除、重命名其中的条目 \\
+执行 \texttt{x} & 作为程序运行 & 进入该目录，访问其下的路径 \\
+\bottomrule
+\end{booktable}
+
+目录的执行位容易被忽略：只有 \texttt{r} 没有 \texttt{x} 时，可以列出名字但无法访问文件内容；只有 \texttt{x} 没有 \texttt{r} 时，知道路径就能打开文件，但列不出目录内容。这一组合在共享场景中有实际用途。
+
+身份分三类：文件所有者（u）、所属组（g）、其他用户（o）。超级用户 root 绕过多数检查，但同样受只读文件系统与不可变属性的限制。
+
+\section{chmod：两种写法}
+
+数字写法把三位二进制当作八进制数：读 4、写 2、执行 1，相加得到一个数字。
+
+\begin{shellsession}
+$ chmod 644 notes.txt    # rw-r--r--
+$ chmod 755 script.sh    # rwxr-xr-x
+$ chmod 600 ~/.ssh/id_ed25519
+$ chmod 700 ~/.ssh
+\end{shellsession}
+
+符号写法更直观，也适合只改一部分权限：
+
+\begin{shellsession}
+$ chmod u+x script.sh    # 给所有者加执行位
+$ chmod go-w file.txt    # 去掉组与其他人的写权限
+$ chmod a+r public.txt   # 所有人可读
+$ chmod g+s /srv/project # 设置组 ID
+\end{shellsession}
+
+递归修改用 \texttt{-R}，但要谨慎：\texttt{chmod -R 777} 会同时给目录与文件加上执行位，结果是目录可以进，文件也被当成程序。常见的正确做法是分别处理：
+
+\begin{shellsession}
+$ find /srv/www -type d -exec chmod 755 {} +
+$ find /srv/www -type f -exec chmod 644 {} +
+\end{shellsession}
+
+\section{chown 与 umask}
+
+\texttt{chown} 改变所有者，\texttt{chgrp} 改变所属组，两者可以合并写成 \texttt{chown 用户:组 路径}。
+
+新建文件的默认权限由 \texttt{umask} 决定。它是一组“要减掉的位”，普通用户默认 022，即新建目录为 755、文件为 644。
+
+\begin{shellsession}
+$ umask
+0022
+$ umask 077
+$ touch secret.txt && ls -l secret.txt
+-rw------- 1 weiwen users 0 Nov 24 10:20 secret.txt
+\end{shellsession}
+
+\texttt{umask 077} 常用于存放密钥的目录：此后新建的文件只有自己可读写。也可以写成 \texttt{mkdir -m 700}，只对单次操作生效。
+
+\section{sudo 与 wheel}
+
+NixOS 中，属于 \texttt{wheel} 组的用户可以通过 \texttt{sudo} 取得管理员权限。配置写在 \texttt{configuration.\allowbreak{}nix}：
+
+\begin{nixcode}
+users.users.weiwen = {
+  isNormalUser = true;
+  extraGroups = [ "wheel" "networkmanager" ];
+};
+security.sudo.wheelNeedsPassword = true;
+\end{nixcode}
+
+\texttt{wheelNeedsPassword} 为真时，\texttt{sudo} 要求输入自己的密码，并在一段时间内缓存。把它设为假可以免密提权，代价是任何能操作该账户的人都能取得 root。
+
+\begin{warnbox}[sudo 的正确用法]
+\texttt{sudo} 只对紧跟的那一条命令提权，不开新的 shell。需要连续执行多条管理命令时，逐条加 \texttt{sudo}，而不是执行 \texttt{sudo -i} 后长时间停留在 root shell 中。root shell 与普通 shell 外观相同，没有额外提示，一条写错的 \texttt{rm -rf} 无法撤销。
+\end{warnbox}
+
+常见错误是把重定向写在 \texttt{sudo} 之外：
+
+\begin{shellsession}
+$ sudo echo x > /etc/protected     # 失败：重定向由当前 shell 执行
+$ echo x | sudo tee /etc/protected # 正确：tee 以 root 身份写文件
+\end{shellsession}
+
+\section{排查权限事故}
+
+遇到 \texttt{Permission denied}，按以下顺序检查，通常在前三步就能定位。
+
+\begin{enumerate}
+  \item \texttt{ls -ld 路径}：查看目录本身的权限，确认是否有 \texttt{x}。
+  \item \texttt{namei -l 路径}：逐级列出路径上每一层的权限，找出中断的那一层。
+  \item \texttt{id}：确认当前用户的 uid、gid 与附加组，判断是否属于所需组。
+  \item \texttt{getfacl 路径}：检查是否存在访问控制列表，它可能覆盖模式位。
+  \item \texttt{lsattr 路径}：检查不可变属性（\texttt{i}），此时即使 root 也不能写。
+\end{enumerate}
+
+\begin{shellsession}
+$ namei -l /srv/project/report.md
+f: /srv/project/report.md
+drwxr-xr-x root root /
+drwxr-xr-x root root srv
+drwxrwsr-x root project project
+-rw-rw-r-- weiwen project report.md
+\end{shellsession}
+
+把权限改回正常值之前，先想清楚原本应是什么。盲目执行 \texttt{chmod -R 777} 会掩盖问题并留下安全隐患；正确的做法是查明所有者与用途，再设定最小可用权限。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 创建一个目录，使同组成员可读写其中文件、其他人完全无权访问。写出所用的三条命令。
+  \item 用 \texttt{namei -l} 检查 \texttt{/\allowbreak{}etc/\allowbreak{}nixos/\allowbreak{}configuration.\allowbreak{}nix} 的路径权限，说明 root 之外的用户为何无法修改它。
+  \item 制造一次权限事故：把某个文件改为 \texttt{000}，然后在不使用 \texttt{sudo} 的情况下判断原因，再恢复。
+  \item 用 \texttt{umask 077} 创建一个文件，记录其权限；再用 \texttt{umask 022} 创建同名新文件，比较差异。
+  \item 验证 \texttt{sudo echo x > 文件} 与 \texttt{echo x | sudo tee 文件} 的区别，记录两条命令的输出。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 读懂 \texttt{ls -l} 的十位权限串，区分文件与目录下三种权限的含义；
+  \item 用数字与符号两种写法设置权限，知道 \texttt{-R} 的风险；
+  \item 用 \texttt{chown}、\texttt{chgrp}、设置组 ID 建立共享目录；
+  \item 用 \texttt{umask} 控制新建文件的默认权限；
+  \item 说明 \texttt{sudo} 的作用范围，避免重定向失效的陷阱；
+  \item 按固定顺序排查 \texttt{Permission denied}。
+\end{itemize}
+\end{checkpoint}

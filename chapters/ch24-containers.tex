@@ -1,0 +1,128 @@
+\chapter{容器}
+\label{ch:containers}
+\chapterlead{容器是受隔离的进程，共享宿主机内核，因此启动快、开销小。本章用 podman 跑起一个服务，说明容器与 Nix 在职责上的分工，以及哪些场景不该用容器。}
+
+\section{起步：运行第一个容器}
+
+\begin{nixcode}
+virtualisation.podman = {
+  enable = true;
+  dockerCompat = true;    # 提供 docker 命令别名
+};
+\end{nixcode}
+
+\begin{shellsession}
+$ podman run --rm hello-world
+$ podman run --rm -it alpine sh
+$ podman ps -a
+$ podman images
+\end{shellsession}
+
+\texttt{-{}-rm} 让容器退出后自动删除，\texttt{-it} 分配终端并保持交互。podman 默认以普通用户运行容器（rootless），比 docker 的默认行为安全。
+
+\section{发布端口与挂载数据}
+
+\begin{shellsession}
+$ podman run -d --name web -p 8080:80 nginx:stable
+$ curl -s localhost:8080 | head -3
+$ podman logs -f web
+$ podman stop web && podman rm web
+\end{shellsession}
+
+\texttt{-p 8080:80} 把宿主机的 8080 映射到容器的 80。\texttt{-d} 后台运行，\texttt{-{}-name} 起名字便于后续操作。数据默认随容器消失，需要保留时用卷：
+
+\begin{shellsession}
+$ podman volume create pgdata
+$ podman run -d --name pg \
+    -e POSTGRES_PASSWORD=secret \
+    -v pgdata:/var/lib/postgresql/data \
+    -p 5432:5432 postgres:16
+\end{shellsession}
+
+\section{容器与 Nix 的分工}
+
+两者都解决“环境一致性”，但对象不同。
+
+\begin{booktable}{\textwidth}{J{0.846} J{1.154}}
+\toprule
+维度 & 分工 \\
+\midrule
+\endhead
+Nix & 构建期：可执行文件、库、配置文件从哪来 \\
+容器 & 运行期：进程的隔离、资源限制、网络 \\
+systemd & 生命周期：谁在什么时候启动、失败后怎么办 \\
+\bottomrule
+\end{booktable}
+
+NixOS 上部署服务的自然顺序是：能用 systemd 服务直接跑的程序，就不放进容器；需要与宿主机隔离、或依赖一套完整运行时（例如某个特定版本的 Python 加一堆系统库）时，用容器；容器本身也由配置声明，而不是手工 \texttt{run}。
+
+\begin{nixcode}
+virtualisation.oci-containers = {
+  backend = "podman";
+  containers.caddy = {
+    image = "docker.io/library/caddy:2";
+    ports = [ "80:80" "443:443" ];
+    volumes = [ "/var/lib/caddy:/data" ];
+  };
+};
+\end{nixcode}
+
+这段配置让容器随系统重建启动，状态由 systemd 管理。手工 \texttt{podman run} 的容器在重建后不会自动恢复，因此只适合实验。
+
+\section{自己构建镜像}
+
+\begin{textcode}
+# Containerfile
+FROM alpine:3.20
+RUN apk add --no-cache curl
+COPY entry.sh /entry.sh
+ENTRYPOINT ["/entry.sh"]
+\end{textcode}
+
+\begin{shellsession}
+$ podman build -t myscript:0.1 .
+$ podman run --rm myscript:0.1
+\end{shellsession}
+
+在 NixOS 上还有另一条路：用 \texttt{dockerTools.\allowbreak{}buildImage} 在 Nix 里构造镜像，内容和依赖都来自 store，可复现性与系统一致。
+
+\begin{nixcode}
+pkgs.dockerTools.buildImage {
+  name = "myscript";
+  tag = "0.1";
+  copyToRoot = pkgs.buildEnv {
+    name = "image-root";
+    paths = [ pkgs.bash pkgs.curl ];
+  };
+  config.Cmd = [ "/bin/bash" ];
+}
+\end{nixcode}
+
+\section{什么时候不该用容器}
+
+三类情况不适合容器。第一，只有一个静态二进制的小服务，直接用 systemd 更简单。第二，需要直接访问硬件（GPU、USB 设备）的工具，容器只增加一层配置。第三，把容器当作“隔离安全边界”：容器共享内核，隔离强度弱于虚拟机，运行不可信代码应使用虚拟机。
+
+\begin{notebox}[rootless 的限制]
+普通用户运行容器时，无法绑定 1024 以下的端口，也不能挂载任意路径。这两个限制都可以绕开，但需要额外配置。服务器上部署对外服务时，通常在 80 与 443 前面放一个反向代理，容器监听高位端口即可。
+\end{notebox}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 运行一个 nginx 容器并映射到 8080，用 \texttt{curl} 验证，再查看日志。
+  \item 用卷运行 PostgreSQL，重启容器后确认数据仍在。
+  \item 写一个 Containerfile，构建并运行一个打印时间的镜像。
+  \item 用 \texttt{dockerTools.\allowbreak{}buildImage} 构造同样功能的镜像，比较两者大小。
+  \item 判断本机上三个现有服务，哪些适合放进容器，说明理由。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 podman 运行、发布端口、查看日志、清理容器；
+  \item 用卷保存容器数据，说明容器删除后什么会丢；
+  \item 说清 Nix、容器、systemd 三者的职责分工；
+  \item 用 \texttt{virtualisation.oci-containers} 声明式地运行容器；
+  \item 判断哪些服务不该容器化。
+\end{itemize}
+\end{checkpoint}

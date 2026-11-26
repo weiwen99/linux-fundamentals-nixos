@@ -1,0 +1,150 @@
+\chapter{进程、服务与日志}
+\label{ch:processes}
+\chapterlead{进程是运行中的程序，服务是由 init 系统托管的长期进程。本章说明如何观察进程、发送信号、用 systemd 管理服务，以及如何把日志查到具体一次启动。}
+
+\section{起步：看清一个进程}
+
+\begin{shellsession}
+$ ps aux | head -5
+USER  PID %CPU %MEM    VSZ   RSS TTY  STAT START   TIME COMMAND
+root    1  0.0  0.1 168200 12400 ?    Ss   09:14   0:03 /nix/store/.../lib/systemd/systemd
+$ pgrep -a sshd
+812 sshd: /nix/store/.../bin/sshd -D [listener]
+$ free -h
+$ uptime
+\end{shellsession}
+
+\texttt{ps aux} 列出全部进程。需要关注的列是 PID（进程号）、\%CPU 与 \%MEM（资源占用）、STAT（状态，\texttt{S} 为睡眠，\texttt{R} 为运行，\texttt{Z} 为僵尸）、COMMAND（启动命令）。\texttt{pgrep -a} 按名字查找并输出完整命令行，比 \texttt{ps | grep} 可靠，因为它不会匹配到 \texttt{grep} 自身。
+
+\begin{toolswap}{top}{btop}
+\texttt{top} 的界面信息密度高但不便操作；\texttt{btop} 支持鼠标、按 CPU 与内存排序、显示每个核心的负载与网络流量。两者都按 \texttt{q} 退出。
+\end{toolswap}
+
+NixOS 上还可用 \texttt{systemd-cgtop} 按服务查看资源占用，输出比进程列表更接近实际的部署单位。
+
+\section{信号}
+
+信号是内核向进程传递的简短消息，用来要求它做某件事。
+
+\begin{booktable}{\textwidth}{L{1.486} L{0.660} J{0.854}}
+\toprule
+信号 & 编号 & 含义 \\
+\midrule
+\endhead
+\texttt{SIGTERM} & 15 & 请求退出，进程可先保存状态，\texttt{kill} 的默认信号 \\
+\texttt{SIGKILL} & 9 & 强制终止，进程无法拦截，可能留下未写完的文件 \\
+\texttt{SIGHUP} & 1 & 挂断；多数守护进程用它表示“重新读取配置” \\
+\texttt{SIGINT} & 2 & 中断，即 \texttt{Ctrl+C} \\
+\texttt{SIGTSTP} & 20 & 暂停，即 \texttt{Ctrl+Z} 发送的信号，进程可以拦截 \\
+\texttt{SIGSTOP} & 19 & 暂停，进程无法拦截，只能由 \texttt{SIGCONT} 恢复 \\
+\bottomrule
+\end{booktable}
+
+\begin{shellsession}
+$ kill 1234            # 默认发送 SIGTERM
+$ kill -TERM 1234
+$ kill -9 1234         # 仅在 SIGTERM 无效时使用
+$ pkill -f "python app.py"
+$ killall firefox
+\end{shellsession}
+
+先 \texttt{TERM} 后 \texttt{KILL} 是固定顺序。直接 \texttt{-9} 会让进程失去清理机会：临时文件留在磁盘、数据库连接不关闭、锁文件不释放。
+
+\section{systemd：服务的管理单位}
+
+systemd 是 NixOS 的 init 系统，也是服务管理器。它把每个长期进程包装成一个 unit。
+
+\begin{shellsession}
+$ systemctl status sshd
+$ systemctl list-units --type=service --state=running
+$ systemctl list-unit-files --state=enabled
+$ sudo systemctl restart sshd
+$ sudo systemctl disable --now bluetooth
+\end{shellsession}
+
+\texttt{status} 的输出分三段：单元概要（是否运行、启动时间、主进程号）、最近若干行日志、以及该单元依赖的其他单元（\texttt{Loaded}、\texttt{Active}、\texttt{Triggered by}）。排查服务问题时，先看这一段，多数情况下结论已经出现。
+
+常用的四个动作：\texttt{start}、\texttt{stop}、\texttt{restart}、\texttt{reload}。\texttt{reload} 让服务重读配置而不中断连接，但只有实现了该能力的服务支持。
+
+在 NixOS 上，手工 \texttt{systemctl enable} 是无效的：服务的启用状态由 \texttt{configuration.\allowbreak{}nix} 决定，重启后按配置重建。正确的做法是修改配置并重建系统。
+
+\section{写一个服务}
+
+下面这份配置定义一个每分钟把时间写入文件的定时任务。
+
+\begin{nixcode}
+systemd.services.clockbeat = {
+  description = "Append the current time to a log file";
+  wantedBy = [ "multi-user.target" ];
+  serviceConfig = {
+    Type = "oneshot";
+    ExecStart = "${pkgs.bash}/bin/bash -c 'date -Is >> /var/log/clockbeat.log'";
+    User = "root";
+  };
+};
+
+systemd.timers.clockbeat = {
+  wantedBy = [ "timers.target" ];
+  timerConfig = {
+    OnCalendar = "*:0/1";
+    Unit = "clockbeat.service";
+  };
+};
+\end{nixcode}
+
+重建后可用三条命令验证。
+
+\begin{shellsession}
+$ sudo nixos-rebuild switch
+$ systemctl list-timers clockbeat
+$ tail -f /var/log/clockbeat.log
+\end{shellsession}
+
+\texttt{Type = "oneshot"} 表示进程执行完即退出，适合定时任务。长期运行的服务用默认的 \texttt{simple}，并配合 \texttt{Restart = "on-\allowbreak{}failure"} 让它在崩溃后自动重启。
+
+\begin{warnbox}[服务里的路径]
+\texttt{ExecStart} 中的程序必须写绝对路径，因为服务启动时没有登录 shell 的 \texttt{PATH}。在 NixOS 中用 \texttt{\$\{pkgs.包名\}/bin/程序名} 引用，路径由系统生成，不依赖人工维护。
+\end{warnbox}
+
+\section{日志：journalctl}
+
+systemd 把服务日志收进日志数据库，用 \texttt{journalctl} 查询。
+
+\begin{shellsession}
+$ journalctl -u sshd -n 50          # 该服务最近 50 行
+$ journalctl -u sshd -f             # 持续跟随
+$ journalctl -b                     # 本次启动
+$ journalctl -b -1 -p err           # 上次启动中的错误
+$ journalctl --since "1 hour ago"
+$ journalctl -u clockbeat --no-pager
+\end{shellsession}
+
+\texttt{-b} 按启动划分范围，\texttt{-1} 表示上一次启动。系统起不来时，进入救援介质后挂载原系统的 \texttt{/\allowbreak{}var/\allowbreak{}log/\allowbreak{}journal}，再用 \texttt{journalctl -D} 指定目录读取，这是第\ref{ch:troubleshooting}章的主要手段之一。
+
+日志默认占用磁盘的 10\%，由 \texttt{SystemMaxUse} 控制。空间紧张时可以清理旧日志：
+
+\begin{shellsession}
+$ journalctl --disk-usage
+$ sudo journalctl --vacuum-time=7d
+\end{shellsession}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{ps aux} 找出占用内存最多的三个进程，记录命令名与 RSS 数值。
+  \item 启动一个 \texttt{sleep 300} 进程，用 \texttt{pgrep} 找到 PID，分别用 \texttt{TERM} 与 \texttt{KILL} 结束它，比较两种方式的效果。
+  \item 用 \texttt{systemctl list-\allowbreak{}timers} 列出系统上所有定时任务，选一个说明它的作用。
+  \item 把上面的 \texttt{clockbeat} 服务改成每五分钟执行一次，重建后验证日志新增的间隔。
+  \item 用 \texttt{journalctl -\allowbreak{}b -\allowbreak{}p warning} 查看本次启动的警告，找出其中出现次数最多的一条。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 \texttt{ps}、\texttt{pgrep}、\texttt{btop} 观察进程与资源占用；
+  \item 解释 \texttt{TERM} 与 \texttt{KILL} 的区别，按正确顺序结束进程；
+  \item 用 \texttt{systemctl} 查询与控制服务，说明 NixOS 上为何不能手工 enable；
+  \item 写出一个带绝对路径的 systemd 服务与定时器；
+  \item 用 \texttt{journalctl} 按服务、启动、优先级、时间范围检索日志。
+\end{itemize}
+\end{checkpoint}

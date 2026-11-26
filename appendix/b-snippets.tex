@@ -13,7 +13,7 @@
   time.timeZone = "Asia/Shanghai";
   i18n.defaultLocale = "zh_CN.UTF-8";
 
-  # 中文显示与输入（第十六章）
+  # 中文显示与输入（第十七章）
   fonts.packages = with pkgs; [ noto-fonts-cjk-sans noto-fonts-cjk-serif sarasa-gothic ];
   i18n.inputMethod = {
     enable = true;
@@ -21,12 +21,12 @@
     fcitx5.addons = with pkgs; [ fcitx5-chinese-addons ];
   };
 
-  # 常用工具（第十三章）
+  # 常用工具（第十四章）
   environment.systemPackages = with pkgs; [
     git vim curl htop jq ripgrep fd
   ];
 
-  # 自动清理（第十五章）
+  # 自动清理（第十六章）
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -41,7 +41,7 @@
 
 \begin{nixcode}
 {
-  # SSH：只允许密钥登录（第二十五章）
+  # SSH：只允许密钥登录（第二十六章）
   services.openssh = {
     enable = true;
     openFirewall = true;
@@ -58,20 +58,20 @@
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... ci" ];
   };
 
-  # 防火墙（第二十五章）
+  # 防火墙（第二十六章）
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 22 80 443 ];
   };
 
-  # 自动更新但不自动重启（第三十章）
+  # 自动更新但不自动重启（第三十一章）
   system.autoUpgrade = {
     enable = true;
     allowReboot = false;
     dates = "04:00";
   };
 
-  # 防护与日志（第二十八、三十章）
+  # 防护与日志（第二十九、三十一章）
   services.fail2ban.enable = true;
   services.journald.extraConfig = ''
     SystemMaxUse=1G
@@ -84,7 +84,7 @@
 
 \begin{nixcode}
 {
-  # 静态站点 + 自动证书（第二十六章）
+  # 静态站点 + 自动证书（第二十七章）
   services.nginx.enable = true;
   services.nginx.virtualHosts."example.com" = {
     forceSSL = true;
@@ -96,7 +96,7 @@
     defaults.email = "admin@example.com";
   };
 
-  # 后端服务（第八章）
+  # 后端服务（第九章）
   systemd.services.api = {
     description = "API service";
     wantedBy = [ "multi-user.target" ];
@@ -112,7 +112,7 @@
     };
   };
 
-  # 定时备份（第二十七章）
+  # 定时备份（第二十八章）
   services.restic.backups.daily = {
     repository = "/mnt/backup/restic";
     passwordFile = "/run/secrets/restic-pass";
@@ -128,7 +128,7 @@
 
 \begin{nixcode}
 {
-  # Hyprland（第十六章）
+  # Hyprland（第十七章）
   programs.hyprland.enable = true;
   services.displayManager.ly.enable = true;
 
@@ -137,7 +137,7 @@
   services.mako.enable = true;
   environment.systemPackages = with pkgs; [ grim slurp wl-clipboard ];
 
-  # 硬件（第十七章）
+  # 硬件（第十八章）
   hardware.bluetooth.enable = true;
   hardware.enableRedistributableFirmware = true;
   services.tlp.enable = true;

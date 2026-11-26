@@ -4,7 +4,7 @@
 
 一本写给完全初学者的 Linux 教材：以 NixOS 作为第一台 Linux，讲命令行、Unix 传统、系统配置、日常开发与服务器运维，最后讲怎么安全地使用 AI Agent。
 
-全书 35 章，分五部分：起步、系统、开发、运维、Agent。
+全书 36 章，分五部分：起步、系统、开发、运维、Agent。
 
 ## 下载
 
@@ -12,10 +12,10 @@
 
 | 文件 | 纸张与字号 | 页数 |
 |---|---|---|
-| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 192 |
-| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 196 |
-| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 385 |
-| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 267 |
+| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 194 |
+| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 198 |
+| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 382 |
+| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 271 |
 
 页数随版本变化，以文件为准。每个版本的 PDF 也附在
 [Releases](https://github.com/weiwen99/linux-fundamentals-nixos/releases) 里，

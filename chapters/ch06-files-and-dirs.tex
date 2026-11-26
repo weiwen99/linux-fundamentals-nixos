@@ -1,0 +1,162 @@
+\chapter{文件与目录}
+\label{ch:files-and-dirs}
+\chapterlead{Linux 把磁盘上的数据组织成树状的文件系统：一个根目录，下面挂载各个分区与设备。本章说明路径的构成、目录布局的由来、如何在大范围中定位文件，以及链接与磁盘占用的计算方式。}
+
+\section{起步：建一棵目录树}
+
+在虚拟机中依次执行下列命令，最后查看结果。
+
+\begin{shellsession}
+$ cd ~
+$ mkdir -p lab/2026/11 lab/archive
+$ touch lab/2026/11/notes.txt lab/2026/11/todo.md
+$ echo "第一条笔记" > lab/2026/11/notes.txt
+$ find lab | sort
+lab
+lab/2026
+lab/2026/11
+lab/2026/11/notes.txt
+lab/2026/11/todo.md
+lab/archive
+\end{shellsession}
+
+\texttt{mkdir -p} 会连同缺失的上级目录一起创建；\texttt{touch} 创建一个空文件，若文件已存在则只更新修改时间；\texttt{>} 把命令输出写进文件。\texttt{find} 递归列出全部条目，顺序取决于目录项的存放次序；接到 \texttt{sort} 之后才是字典序。若已安装 \texttt{tree}，它的输出更直观。
+
+\section{路径}
+
+路径分两种。以斜线开头的是绝对路径，从根目录算起；否则是相对路径，从当前目录算起。
+
+\begin{shellsession}
+$ pwd
+/home/weiwen
+$ cd lab/2026/11
+$ pwd
+/home/weiwen/lab/2026/11
+$ cd ..
+$ pwd
+/home/weiwen/lab/2026
+\end{shellsession}
+
+路径里有两个特殊名字：\texttt{.} 表示当前目录，\texttt{..} 表示上级目录。\texttt{cd -} 回到上一次所在的目录，比反复输入长路径省事。
+
+路径的访问权限由所有者与模式位决定，详见第\ref{ch:permissions}章。
+
+\section{目录布局}
+
+Linux 的目录布局由文件系统层次标准（FHS）规定。各家发行版的顶层结构基本一致，这是跨发行版经验可以复用的原因。
+
+\begin{figure}
+\centering
+\figfit{%
+\begin{tikzpicture}[font=\ttfamily\small,
+  grow=right,
+  level 1/.style={level distance=26mm, sibling distance=6.2mm},
+  level 2/.style={level distance=26mm, sibling distance=6.2mm},
+  every node/.style={anchor=west, inner sep=2pt},
+  edge from parent/.style={draw=rule, thick}]
+\node {/}
+  child { node {bin} }
+  child { node {etc} }
+  child { node {home} }
+  child { node {nix} }
+  child { node {proc} }
+  child { node {usr} }
+  child { node {var} }
+  child { node {tmp} };
+\end{tikzpicture}%
+}
+\caption{顶层目录}
+\end{figure}
+
+常见位置如下。
+
+\begin{booktable}{\textwidth}{L{1.240} J{0.760}}
+\toprule
+路径 & 内容 \\
+\midrule
+\endhead
+\texttt{/etc/nixos} & NixOS 的系统配置，\texttt{configuration.\allowbreak{}nix} 在此 \\
+\texttt{\textasciitilde/.config} & 用户级配置，一个程序一个目录 \\
+\texttt{\textasciitilde/.local/share} & 用户级数据 \\
+\texttt{/var/log} & 日志；NixOS 上多数服务日志由 journald 管理，不在此处 \\
+\texttt{/mnt}、\texttt{/media} & 手动挂载点 \\
+\bottomrule
+\end{booktable}
+
+\section{查看与统计}
+
+\begin{shellsession}
+$ ls -lh /var/log
+$ du -sh ~/lab
+$ df -h /
+$ stat ~/lab/2026/11/notes.txt
+\end{shellsession}
+
+\texttt{ls -l} 的每行输出包含七段信息：文件类型与权限、硬链接数、所有者、所属组、大小、修改时间、文件名。\texttt{-h} 把字节数转换为 K、M、G。\texttt{du -sh} 统计目录占用的磁盘空间，\texttt{df -h} 查看文件系统层面的剩余容量。两者结果可能不同：\texttt{du} 累加文件大小，\texttt{df} 反映已分配的数据块，小文件多时差额明显。
+
+\texttt{stat} 给出更精确的元数据，包括三个时间：访问时间、修改时间、元数据变更时间。
+
+\section{定位文件}
+
+\texttt{find} 是任何系统都有的搜索工具，语法是先写查找范围，再写条件。
+
+\begin{shellsession}
+$ find /etc -name "*.conf" -type f
+$ find ~ -name "*.log" -mtime -7
+$ find . -type f -size +100M
+$ find . -name build -type d -prune -o -name "*.nix" -print
+\end{shellsession}
+
+四条命令分别查找：指定后缀的普通文件、七天内修改过的日志、大于 100\,MB 的文件、跳过 \texttt{build} 目录后列出 \texttt{.nix} 文件。最后一条的 \texttt{-o} 表示“或”，\texttt{-prune} 表示不再进入该目录。
+
+\begin{toolswap}{find . -name "*.nix"}{fd -e nix}
+\texttt{fd} 的默认行为已经包含递归、忽略隐藏目录、忽略 \texttt{.gitignore} 中的路径，并输出彩色结果。同样的检索写作 \texttt{fd -e nix}，后缀用 \texttt{-e} 指定。
+\end{toolswap}
+
+\begin{shellsession}
+$ fd -e nix
+$ fd -e md --changed-within 7d
+$ fd -t f -S +100M
+$ rg -l "networking.hostName" /etc/nixos
+\end{shellsession}
+
+第三条按大小筛选，\texttt{-S +100M} 的含义与 \texttt{find} 的 \texttt{-size +100M} 相同。第四条用 \texttt{rg} 的 \texttt{-l} 只列出包含该字符串的文件名，适合在配置目录里定位某一项设置。
+
+\section{链接}
+
+同一份数据可以有多个名字。硬链接指向同一份 inode，删除其中一个名字不影响数据；符号链接是一个独立文件，内容是另一条路径。
+
+\begin{shellsession}
+$ echo hello > a.txt
+$ ln a.txt b.txt          # 硬链接
+$ ln -s a.txt c.txt       # 符号链接
+$ ls -li a.txt b.txt c.txt
+$ rm a.txt
+$ cat b.txt               # 仍有内容
+$ cat c.txt               # 报错：No such file or directory
+\end{shellsession}
+
+\texttt{ls -li} 的第一列是 inode 编号：硬链接的两个名字编号相同，符号链接有自己的编号。删除原文件后，硬链接仍可读取，符号链接成为断链。符号链接可以跨分区，硬链接不行。
+
+日常更常用符号链接：切换配置版本、把 \texttt{/etc/nixos} 指向 Git 仓库中的目录、给长路径起短名。\texttt{ln -sfn 目标 链接名} 是更新符号链接的标准写法，\texttt{-n} 避免把已有链接当成目录而在其中创建新链接。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 在家目录下建立 \texttt{notes/2026/11} 三层目录，在其中写三个文件，用 \texttt{tree} 或 \texttt{find} 核对结构。
+  \item 用 \texttt{du -sh} 与 \texttt{df -h} 分别查看家目录与根分区，记录两个数值，说明它们统计的对象有何不同。
+  \item 在 \texttt{/etc} 下找出所有以 \texttt{.conf} 结尾且大于 10\,KB 的文件，先用 \texttt{find}，再用 \texttt{fd} 实现同样的筛选。
+  \item 创建一对硬链接与一个符号链接，删除原文件后分别读取，记录结果。
+  \item 把 \texttt{/etc/nixos} 的绝对路径用 \texttt{readlink -f} 展开，观察是否存在符号链接。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 区分绝对路径与相对路径，用 \texttt{.}、\texttt{..}、\texttt{-} 在目录间移动；
+  \item 说明 \texttt{/etc}、\texttt{/var}、\texttt{/usr}、\texttt{/nix} 各自的用途；
+  \item 读懂 \texttt{ls -l} 的七段输出；
+  \item 用 \texttt{find} 按名称、时间、大小、类型筛选文件，并用 \texttt{fd} 写出等价命令；
+  \item 区分硬链接与符号链接，知道断链的成因。
+\end{itemize}
+\end{checkpoint}

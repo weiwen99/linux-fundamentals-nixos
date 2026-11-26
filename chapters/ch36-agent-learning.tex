@@ -1,0 +1,105 @@
+\chapter{用 Agent 学习与工作}
+\label{ch:agent-learning}
+\chapterlead{Agent 最容易被误用的地方，是代替理解。本章给出三种用法：让 Agent 解释、让它出题、让它复核；以及一条判断标准：能不能不用它复述同样的结论。}
+
+\section{起步：三种提问方式}
+
+同一个问题，问法不同，收获完全不同。
+
+\begin{booktable}{\textwidth}{J{0.741} J{1.259}}
+\toprule
+问法 & 结果 \\
+\midrule
+\endhead
+“这条命令什么意思” & 一段解释，读得快忘得也快 \\
+“给我三个例子，其中一个是错的” & 迫使自己判断对错 \\
+“我这样理解对不对：……” & 暴露理解偏差，最有价值 \\
+\bottomrule
+\end{booktable}
+
+第三种问法的价值在于提供了错误的空间。Agent 会指出偏差，而“给个解释”只会得到一段正确的复述。
+
+\section{解释命令与报错}
+
+\begin{shellsession}
+$ omp
+> 解释这条命令，逐段说明每个符号的作用：
+  find . -name '*.nix' -print0 | xargs -0 grep -l stateVersion
+\end{shellsession}
+
+好的解释会指出 \texttt{-print0} 与 \texttt{-0} 的配对关系，以及不加它们时文件名含空格会怎样出错。如果回答只停留在“查找文件并搜索内容”，要求它举一个会失败的例子，通常能逼出细节。
+
+报错同理。贴出完整报错比描述现象有效：
+
+\begin{shellsession}
+> 这段报错来自 nixos-rebuild，我在 /etc/nixos 里改了 firewall：
+  error: The option `networking.firewall.allowedTCPPolts' does not exist.
+\end{shellsession}
+
+答案会指出拼写错误（\texttt{Polts} 应为 \texttt{Ports}），并说明 NixOS 的选项检查发生在求值阶段，因此不会进入构建。
+
+\section{让它出题}
+
+学习阶段最有效的用法是出题，而不是讲解。
+
+\begin{shellsession}
+> 根据书里讲权限的那一章出五道题，三道检查权限位，两道检查排查顺序。
+  只给题目，答案放在最后，用 <details> 折叠。
+\end{shellsession}
+
+自己先答，再对照。答错的题目对应回书中的小节重读一遍。这个循环比读第二遍原文有效，因为检索本身会强化记忆。
+
+\section{让它复核}
+
+写完脚本、配置或文档后，让 Agent 找问题，而不是夸奖。
+
+\begin{shellsession}
+> 复核这个脚本，只报告可能导致数据丢失或静默失败的问题，
+  不要给改进建议，不要改文件。
+\end{shellsession}
+
+限定输出类型很关键。“全面评审”会得到一份包含命名风格与注释格式的清单，关键的三条被埋在中间。限定为“只报告某一类问题”，信噪比会高很多。
+
+\section{接受与拒绝的边界}
+
+四条标准决定什么时候该采纳 Agent 的结论。
+
+\begin{enumerate}
+  \item 能否自己复述理由。说不清原因的改动，先别接受。
+  \item 是否有可验证的证据。命令输出、测试结果、文档原文。
+  \item 是否与已有知识冲突。冲突时先查一手资料，不选边。
+  \item 出错代价是否可承受。不可承受的操作，不用 Agent 试。
+\end{enumerate}
+
+第四条是硬约束。删除数据、修改生产配置、上传密钥这类操作，即使 Agent 说得很有把握，也不应交给它自动执行。
+
+\section{一条判断标准}
+
+读完一本书、做完一个项目之后，用一个问题检验学习效果：不用 Agent，能否复述同样的结论。
+
+能，说明工具起到了加速作用；不能，说明知识留在了对话记录里，而不在脑子里。会话文件可以保存，但下次遇到同类问题时，没有谁代为检索。
+
+\begin{culturenote}
+Unix 的传统是小工具组合、可读的文本、可复现的过程。Agent 符合这条传统的前提是：它的每一步都能被看见、被验证、被撤销。把 Agent 当成一个能干的实习生，而不是一个权威，这条传统就还在。
+\end{culturenote}
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用三种问法问同一个问题，比较回答的差异，记录哪一种暴露了理解偏差。
+  \item 拿一段自己写过的脚本，让 Agent 只报告数据丢失风险，逐条判断是否成立。
+  \item 让它按某一章内容出五道题，作答后统计正确率。
+  \item 找一条 Agent 给出的、无法复述其理由的结论，查一手资料核实。
+  \item 为自己写三条“不交给 Agent 自动执行”的操作清单。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用三种问法提问，并说明哪一种最能暴露理解偏差；
+  \item 通过要求举例与限定输出类型提高回答质量；
+  \item 用出题与复核两种方式检验学习效果；
+  \item 按四条标准判断是否采纳 Agent 的结论；
+  \item 用“能否复述”检验自己是否真的学会了。
+\end{itemize}
+\end{checkpoint}

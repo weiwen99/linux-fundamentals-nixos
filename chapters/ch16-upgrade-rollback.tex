@@ -1,0 +1,98 @@
+\chapter{升级、回滚与清理}
+\label{ch:upgrade-rollback}
+\chapterlead{升级在 NixOS 上是可撤销的操作：新状态另存一份，旧的仍然可用。本章说明升级的两种粒度、回滚的四种途径，以及如何控制磁盘占用。}
+
+\section{起步：升级一次}
+
+\begin{shellsession}
+$ sudo nixos-rebuild list-generations
+$ sudo nix-channel --update            # 传统通道方式
+$ sudo nixos-rebuild switch --upgrade  # 拉取最新并重建
+$ sudo nixos-rebuild switch --flake .#nixos-lab --update-input nixpkgs
+\end{shellsession}
+
+用 flake 管理时，升级的对象是 \texttt{flake.lock} 里记录的 nixpkgs 提交；用通道时，升级的是通道指向的分支。两者都会生成新的一代，旧的保持可用。
+
+\begin{shellsession}
+$ nixos-version
+26.11.20261121.2786a2a (Zokor)
+\end{shellsession}
+
+版本号由发布号与 nixpkgs 提交前缀组成。两台机器版本号一致，意味着系统包来自同一份 nixpkgs。
+
+\section{四种回滚途径}
+
+\begin{booktable}{\textwidth}{J{0.902} J{1.098}}
+\toprule
+场景 & 做法 \\
+\midrule
+\endhead
+刚切换完，服务异常 & \texttt{sudo nixos-rebuild switch -{}-rollback} \\
+想回到更早的某代 & 从 \texttt{list-generations} 取编号，\texttt{sudo nixos-rebuild switch -{}-switch-generation N} \\
+系统起不来 & 引导菜单里选 Older versions，进入旧代 \\
+配置写坏了但旧代也启动不了 & 用安装介质挂载后改配置，或 \texttt{nixos-enter} 进目标系统修复 \\
+\bottomrule
+\end{booktable}
+
+前两种在运行中的系统上完成，几秒钟生效。第三种不依赖系统可用，因为引导程序在选择阶段就决定了加载哪一代。第四种属于救援，第\ref{ch:troubleshooting}章详述。
+
+\begin{shellsession}
+$ sudo nixos-rebuild switch --switch-generation 42
+$ sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
+\end{shellsession}
+
+回滚之后，配置文件的改动仍然留在 \texttt{/etc/nixos} 或仓库里。若不再需要那项改动，记得同时撤销，否则下次重建会把问题带回来。
+
+\section{磁盘占用与清理}
+
+store 只增不减，需要定期回收。
+
+\begin{shellsession}
+$ du -sh /nix/store
+$ sudo nix-collect-garbage --dry-run
+$ sudo nix-collect-garbage -d          # 删除旧代并回收
+$ sudo nix-store --optimise            # 硬链接相同文件，节省空间
+\end{shellsession}
+
+\texttt{-d} 会删除所有旧的代，代价是失去回滚能力。更稳的做法是保留最近若干代：
+
+\begin{nixcode}
+nix.gc = {
+  automatic = true;
+  dates = "weekly";
+  options = "--delete-older-than 30d";
+};
+\end{nixcode}
+
+这项配置让系统每周自动清理三十天前的代与孤立路径。家用机器保留 30 天足够；服务器上要配合备份策略，见第\ref{ch:backup}章。
+
+\begin{notebox}[清理前的检查]
+执行 \texttt{-{}-delete-older-than} 之前先确认两件事：当前系统能正常启动，且需要保留的旧代没有被引用。正在运行的服务所使用的 store 路径不会被删除，因此清理不会中断服务，只影响回滚能力。
+\end{notebox}
+
+\section{通道与 flake 的迁移}
+
+两者可以共存，但不要让它们互相覆盖。迁移步骤：把 \texttt{flake.nix} 写进 \texttt{/etc/nixos}（或仓库），生成锁文件，用 \texttt{-{}-flake} 参数重建一次，确认无误后停止使用 \texttt{nix-channel}。
+
+迁移后 \texttt{nixos-rebuild} 的默认行为不变，仍会读 \texttt{/etc/nixos}；差别在于依赖版本由锁文件决定。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 记录当前版本号与代数，升级一次，比较两者的变化。
+  \item 用 \texttt{-{}-rollback} 回到升级前，再用 \texttt{-{}-switch-\allowbreak{}generation} 回到升级后的那一代。
+  \item 重启并在引导菜单里选择旧代，登录后用 \texttt{nixos-version} 确认版本。
+  \item 用 \texttt{nix-collect-garbage -{}-dry-run} 查看将释放多少空间，说明数字的来源。
+  \item 配置 \texttt{nix.gc}，保留 30 天，重建后用 \texttt{systemctl list-timers} 确认定时器已注册。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用通道与 flake 两种方式升级，说出它们的区别；
+  \item 在四种不同故障程度下选择合适的回滚途径；
+  \item 说明回滚不会撤销配置文件改动，需要另行处理；
+  \item 用 \texttt{nix-collect-garbage} 与 \texttt{nix.gc} 控制磁盘占用，理解其代价；
+  \item 把系统从通道迁移到 flake 而不破坏现有配置。
+\end{itemize}
+\end{checkpoint}

@@ -1,0 +1,115 @@
+\chapter{语言环境与项目}
+\label{ch:languages}
+\chapterlead{开发环境的问题不是“装不上”，而是“装了好几个版本，互相冲突”。本章用 Nix 为四种语言各建一个隔离环境，说明依赖如何随项目走。}
+
+\section{起步：四种语言各跑一个程序}
+
+\begin{shellsession}
+$ nix shell nixpkgs#python312 --command python -c "print('py ok')"
+$ nix shell nixpkgs#nodejs_22 --command node -e "console.log('node ok')"
+$ nix shell nixpkgs#rustc nixpkgs#cargo --command cargo --version
+$ nix shell nixpkgs#go --command go version
+\end{shellsession}
+
+四条命令各自启动一个临时环境，退出后不留痕迹。这种做法适合试版本，不适合长期项目。
+
+\section{Python}
+
+\begin{nixcode}
+# shell.nix
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  packages = [
+    (pkgs.python312.withPackages (ps: with ps; [
+      requests
+      pandas
+    ]))
+    pkgs.ruff
+    pkgs.mypy
+  ];
+}
+\end{nixcode}
+
+\texttt{withPackages} 把 Python 与一组库绑成一个包，环境里 \texttt{python} 直接能 import 这些库。优点是不需要 virtualenv，也不会污染系统 Python；代价是新增依赖要改 \texttt{shell.nix} 并重新进入环境。
+
+需要在环境里自由 \texttt{pip install} 时，把 \texttt{pip} 与 \texttt{virtualenv} 加进去，用 venv 管理临时依赖。两种方式不要混用：\texttt{withPackages} 提供的库对 venv 不可见。
+
+\section{Node 与 JavaScript}
+
+\begin{nixcode}
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  packages = with pkgs; [ nodejs_22 pnpm ];
+}
+\end{nixcode}
+
+Node 项目通常自带 \texttt{package.json}，依赖由 pnpm 装进项目目录的 \texttt{node\_\allowbreak{}modules}，不进入 store。Nix 只负责提供 Node 运行时本身。这与 Python 的做法不同，但目的一样：不同项目用不同版本的运行时。
+
+如果项目需要“依赖也固定”，可以用 \texttt{pkgs.\allowbreak{}fetchPnpmDeps} 一类工具把 \texttt{node\_\allowbreak{}modules} 也纳入 Nix，构建产物完全可复现。个人开发阶段通常不必如此。
+
+\section{Rust 与 Go}
+
+\begin{nixcode}
+{ pkgs ? import <nixpkgs> {} }:
+
+pkgs.mkShell {
+  packages = with pkgs; [
+    rustc cargo rustfmt clippy
+  ];
+}
+\end{nixcode}
+
+Rust 的依赖由 \texttt{cargo} 管理并缓存在 \texttt{\textasciitilde/.cargo}，Nix 只提供工具链。Go 类似，模块缓存放在 \texttt{\textasciitilde/go}。
+
+需要固定工具链版本时，Rust 用 \texttt{rust-overlay} 指定具体的 nightly 或稳定版，Go 用 \texttt{go\_1\_23} 这类带版本号的包名。两者都比手工下载安装包干净：版本写在文件里，换机器只需重新进入环境。
+
+\section{编辑器与语言服务}
+
+语言服务（LSP）提供补全、跳转、诊断。它需要知道项目的依赖在哪，因此在 Nix 环境里要额外处理。
+
+\begin{nixcode}
+pkgs.mkShell {
+  packages = with pkgs; [ python312 ruff basedpyright ];
+
+  shellHook = ''
+    export VIRTUAL_ENV_DISABLE_PROMPT=1
+  '';
+}
+\end{nixcode}
+
+把 LSP 装进项目环境，而不是装进系统，可以保证补全看到的库与运行时的库是同一套。编辑器的 LSP 客户端配置指向环境里的可执行文件即可。
+
+\section{从实验到可复现}
+
+三种过渡路径，按投入递增。
+
+\begin{enumerate}
+  \item 临时试：\texttt{nix shell}，用完即弃。
+  \item 项目开发：\texttt{shell.nix} 或 flake 的 devShell，提交进仓库。
+  \item 交付物：把程序本身打包成 derivation，产出可直接运行的 store 路径或容器镜像。
+\end{enumerate}
+
+多数项目停在第二步即可。第三步在需要向他人交付、或部署到没有 Nix 的环境时才有必要。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 \texttt{nix shell} 试出本机可用的 Python 版本，记录版本号。
+  \item 为一个 Python 项目写 \texttt{shell.nix}，固定 Python 3.12 与三个库。
+  \item 为同一个项目加一个 Node 子目录，在同一环境里提供两个运行时。
+  \item 在 Rust 环境里运行 \texttt{cargo clippy}，说明它与系统安装的版本是否一致。
+  \item 用 flake 重写第 2 题，生成锁文件，在另一个目录克隆后验证环境相同。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 为四种语言各写出一个隔离环境；
+  \item 说明 \texttt{withPackages} 与 venv 的关系，知道两者不能混用；
+  \item 判断哪些依赖交给语言自己的包管理器，哪些交给 Nix；
+  \item 让编辑器看到与环境一致的依赖；
+  \item 按三种路径把实验环境推进到可复现状态。
+\end{itemize}
+\end{checkpoint}

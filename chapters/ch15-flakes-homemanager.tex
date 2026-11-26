@@ -1,0 +1,153 @@
+\chapter{Flakes 与 Home Manager}
+\label{ch:flakes-homemanager}
+\chapterlead{flake 把系统的全部输入钉死在一个锁文件里，Home Manager 把用户级配置纳入同一套机制。本章把前几章散落的配置整理成一个可提交、可在另一台机器复现的仓库。}
+
+\section{起步：启用 flakes}
+
+flakes 是 Nix 的实验特性，需要显式开启。
+
+\begin{nixcode}
+nix.settings.experimental-features = [ "nix-command" "flakes" ];
+\end{nixcode}
+
+写进 \texttt{configuration.nix} 并重建后，\texttt{nix flake} 与 \texttt{nixos-rebuild -{}-flake} 可用。
+
+\begin{shellsession}
+$ nix flake --help | head -5
+$ nixos-rebuild switch --flake .#nixos-lab
+\end{shellsession}
+
+\section{一个 NixOS flake}
+
+\begin{nixcode}
+{
+  description = "nixos-lab";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.11";
+    home-manager = {
+      url = "github:nix-community/home-manager/release-26.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, home-manager, ... }:
+    let
+      system = "x86_64-linux";
+    in {
+      nixosConfigurations.nixos-lab = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.weiwen = import ./home.nix;
+          }
+        ];
+      };
+    };
+}
+\end{nixcode}
+
+\texttt{inputs} 声明外部依赖，\texttt{follows} 让 Home Manager 使用同一份 nixpkgs，避免同一个包被求值两遍。\texttt{outputs} 声明这台主机的系统配置，名字 \texttt{nixos-lab} 与 \texttt{-{}-flake .\#nixos-lab} 对应。
+
+\begin{shellsession}
+$ nix flake lock          # 生成或更新 flake.lock
+$ nix flake update        # 更新全部输入到最新
+$ nix flake update nixpkgs  # 只更新一项
+\end{shellsession}
+
+\texttt{flake.lock} 提交进仓库。升级因此变成一次可审查的提交：锁文件里改动的那几行，就是这次升级引入的全部变化。
+
+\section{Home Manager 管什么}
+
+Home Manager 管理用户级的东西：shell 配置、编辑器配置、用户级包、dotfiles、systemd user 服务。它不碰系统级配置，两者分工明确。
+
+\begin{nixcode}
+{ pkgs, ... }:
+
+{
+  home.username = "weiwen";
+  home.homeDirectory = "/home/weiwen";
+  home.stateVersion = "26.11";
+
+  programs.bash = {
+    enable = true;
+    shellAliases = {
+      ll = "ls -alF";
+      gs = "git status";
+    };
+  };
+
+  programs.git = {
+    enable = true;
+    userName = "Weiwen Zhang";
+    userEmail = "weiwen@example.com";
+    extraConfig.init.defaultBranch = "main";
+  };
+
+  home.packages = with pkgs; [ ripgrep fd jq ];
+}
+\end{nixcode}
+
+\texttt{programs.*} 是 Home Manager 提供的模块，比自己写 dotfiles 更稳：它知道每个程序的配置文件放在哪、格式是什么。
+
+应用配置有两种方式。作为 NixOS 模块引入时随系统重建生效；独立使用时执行 \texttt{home-manager switch}。
+
+\section{dotfiles 的归属}
+
+传统做法把 dotfiles 放在仓库里，用符号链接铺到 \texttt{\$HOME}。Home Manager 的做法是直接生成文件，生成结果在 \texttt{/nix/store} 里，\texttt{\$HOME} 下是指向它的符号链接。
+
+\begin{shellsession}
+$ ls -l ~/.bashrc
+/home/weiwen/.bashrc -> /nix/store/...-home-manager-files/.bashrc
+\end{shellsession}
+
+这带来两个结果。手动改 \texttt{\textasciitilde/.bashrc} 会在下次切换时被覆盖；要改行为，改 \texttt{home.nix}。反过来，任何时候都能看出某个配置文件的来源。
+
+\begin{notebox}[不能由 Home Manager 管理的文件]
+少数程序把状态和配置混在一个目录里，例如浏览器配置、部分数据库客户端。这类文件交给程序自己管理，不要强行纳入。判断标准：文件里是否含有程序运行时写入的数据。
+\end{notebox}
+
+\section{把仓库整理成可复现的形态}
+
+一份可以带到新机器上的仓库，结构大致如下。
+
+\begin{textcode}
+.
+|-- flake.nix
+|-- flake.lock
+|-- configuration.nix
+|-- hardware-configuration.nix
+|-- home.nix
+`-- modules/
+    |-- desktop.nix
+    `-- dev.nix
+\end{textcode}
+
+\texttt{hardware-configuration.nix} 与具体机器绑定，换机器时重新生成。其余文件与机器无关，可以复制到新机器直接使用。这就是第\ref{ch:configuration}章所说“系统状态可描述”的实际形态。
+
+从零开始启用 flakes 后，旧的 \texttt{nixos-rebuild switch} 仍然可用，但它读 \texttt{/etc/nixos}；使用 flake 时应改为 \texttt{nixos-rebuild switch -{}-flake .\#主机名}，确保用的是仓库里的版本。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 把当前配置整理成 flake，生成 \texttt{flake.lock}，记录 nixpkgs 锁定到的提交。
+  \item 在 \texttt{home.nix} 中设置三个 shell 别名，切换后用 \texttt{alias} 确认生效。
+  \item 修改 \texttt{\textasciitilde/.bashrc}，再执行一次切换，观察改动是否被覆盖。
+  \item 用 \texttt{nix flake update} 升级一次，用 \texttt{git diff flake.lock} 查看变化，再回滚提交。
+  \item 把 \texttt{home.\allowbreak{}packages} 与 \texttt{environment.\allowbreak{}systemPackages} 各放一个包，说明两者在 \texttt{which} 输出中的差别。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 写出一个可用的 NixOS flake，说明 \texttt{inputs}、\texttt{outputs} 与 \texttt{follows} 的作用；
+  \item 用锁文件把升级变成可审查、可回滚的提交；
+  \item 用 Home Manager 管理 shell、git 与用户级包；
+  \item 说明 Home Manager 生成的文件与手写 dotfiles 的差别；
+  \item 分清哪些文件应当纳入仓库，哪些与机器绑定。
+\end{itemize}
+\end{checkpoint}

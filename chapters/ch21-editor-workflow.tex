@@ -1,0 +1,137 @@
+\chapter{编辑器与终端工作流}
+\label{ch:editor-workflow}
+\chapterlead{日常效率取决于三件事：编辑器的操作是否成了肌肉记忆，终端能否同时管理多个任务，shell 的补全与历史是否好用。本章给出一个可用的最小配置，并说明配置如何进入版本控制。}
+
+\section{起步：vim 的六个动作}
+
+先确认编辑器可用。
+
+\begin{shellsession}
+$ vim --version | head -2
+$ vim notes.txt
+\end{shellsession}
+
+vim 分模式：普通模式下按键是命令，插入模式下按键是文字。六个动作覆盖大部分编辑工作。
+
+\begin{booktable}{\textwidth}{J{0.720} J{1.280}}
+\toprule
+按键 & 作用 \\
+\midrule
+\endhead
+\texttt{i} & 进入插入模式，光标前插入 \\
+\texttt{Esc} & 回到普通模式 \\
+\texttt{:w} & 保存 \\
+\texttt{:q} & 退出；有未保存改动时用 \texttt{:q!} 放弃 \\
+\texttt{dd} & 删除当前行 \\
+\texttt{yy} 与 \texttt{p} & 复制当前行，粘贴到下一行 \\
+\bottomrule
+\end{booktable}
+
+再加两个能立刻提速的动作：\texttt{/关键词} 搜索，\texttt{n} 跳到下一个匹配；\texttt{u} 撤销，\texttt{Ctrl+r} 重做。\texttt{:\%s/old/new/g} 全文替换，加 \texttt{c} 结尾则每次替换前确认。
+
+\begin{notebox}[先学操作，再学配置]
+编辑器的配置是无底洞。前两周只用默认配置，把上面八个动作练到不用想，再考虑插件。配置的价值建立在操作熟练之上，顺序颠倒会花掉大量时间在调整键位上。
+\end{notebox}
+
+\section{Neovim 与最小配置}
+
+Neovim 是 vim 的重写版本，配置语言是 Lua，生态更活跃。
+
+\begin{nixcode}
+programs.neovim = {
+  enable = true;
+  defaultEditor = true;
+  viAlias = true;
+
+  extraLuaConfig = ''
+    vim.opt.number = true
+    vim.opt.relativenumber = true
+    vim.opt.expandtab = true
+    vim.opt.shiftwidth = 2
+    vim.opt.ignorecase = true
+    vim.opt.smartcase = true
+  '';
+};
+\end{nixcode}
+
+六行设置分别对应：显示行号、相对行号（便于按行数跳转）、用空格代替制表符、缩进宽度、搜索忽略大小写、但含大写时区分。这六项足以应付日常编辑。
+
+需要语法高亮与语言服务时，可以引入现成的发行版，例如 \texttt{pkgs.neovim} 配合 LazyVim，或使用 \texttt{nixvim} 把配置写成 Nix 表达式。引入前先确认自己需要哪些语言，避免一次装上几十个用不到的插件。
+
+\section{终端复用：tmux 与 zellij}
+
+终端复用器让一个窗口里管理多个会话，断开 SSH 后会话仍在。
+
+\begin{shellsession}
+$ tmux new -s work      # 新建会话
+$ tmux ls               # 列出会话
+$ tmux attach -t work   # 重新接入
+\end{shellsession}
+
+tmux 的默认前缀键是 \texttt{Ctrl+b}，按下后接命令：\texttt{c} 新建窗口，\texttt{n} 下一个窗口，\texttt{"} 水平分屏，\texttt{\%} 垂直分屏，\texttt{d} 断开。zellij 提供类似的界面，底部常驻键位提示，不必记前缀键，代价是占用一行屏幕。
+
+在服务器上，复用器的价值最大：网络中断、笔记本合盖、SSH 客户端崩溃，都不会终止会话中正在运行的编译或部署。
+
+\section{shell 的选择与补全}
+
+\begin{nixcode}
+programs.zsh = {
+  enable = true;
+  enableCompletion = true;
+  autosuggestion.enable = true;
+  syntaxHighlighting.enable = true;
+  initExtra = ''
+    bindkey '^R' history-incremental-search-backward
+  '';
+};
+
+programs.starship.enable = true;
+\end{nixcode}
+
+三项能力决定交互体验：补全（按 Tab 补齐参数与路径）、历史搜索（\texttt{Ctrl+r}）、语法高亮（命令存在与否一眼可见）。zsh 加上面三项就够了，剩下的按需增加。
+
+脚本仍用 bash 编写。原因在第\ref{ch:first-terminal}章说过：服务器上一定有 bash，脚本要选最通用的实现。
+
+\section{把配置纳入版本控制}
+
+编辑器、终端、shell 的配置都应当由 Home Manager 生成，进入同一个仓库。
+
+\begin{nixcode}
+# home.nix 片段
+home.file.".config/kitty/kitty.conf".text = ''
+  font_family      Recursive Mono Casual
+  font_size        12
+  background_opacity 0.95
+  map ctrl+shift+c copy_to_clipboard
+'';
+\end{nixcode}
+
+\texttt{home.file} 适合写小段静态配置，\texttt{programs.*} 适合程序有专用模块的情况。两者生成的路径都在 store 里，\texttt{\$HOME} 下是指向它的链接，源文件随仓库走。
+
+\begin{shellsession}
+$ ls -l ~/.config/kitty/kitty.conf
+$ git -C ~/nixos-config log --oneline -3
+\end{shellsession}
+
+第一条确认文件来源，第二条确认改动有历史。这两条命令是“配置可追溯”的最小验证。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 用 vim 完成：打开文件、插入三行、保存退出；再用 \texttt{u} 撤销一次改动。
+  \item 在 Neovim 中开启相对行号，用 \texttt{5j} 与 \texttt{3k} 跳转，说明相对行号的用处。
+  \item 用 tmux 建立两个窗口并分屏，断开后重新接回，确认进程仍在运行。
+  \item 配置 zsh 的自动建议与语法高亮，输入一条不存在的命令，观察提示差异。
+  \item 用 \texttt{home.file} 管理一份编辑器配置，切换后确认 \texttt{\$HOME} 下是符号链接。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 用 vim 的八个基本动作完成日常编辑；
+  \item 写出六行 Neovim 最小配置并解释每一项；
+  \item 用 tmux 或 zellij 管理会话，说明它解决了什么问题；
+  \item 配置 shell 的补全、历史搜索与语法高亮；
+  \item 把编辑器与终端配置纳入 Home Manager 与版本控制。
+\end{itemize}
+\end{checkpoint}
