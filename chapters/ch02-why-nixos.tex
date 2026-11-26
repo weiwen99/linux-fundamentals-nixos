@@ -1,6 +1,6 @@
 \chapter{NixOS 的理由}
 \label{ch:why-nixos}
-\chapterlead{本章说明系统状态从哪里来，这个来源如何决定复现、回退与审计的成本。后半部分把这些性质放进 AI Agent 参与系统维护的场景里评估，并给出可核查的规模数字与明确的边界。}
+\chapterlead{本章说明系统状态从哪里来，这个来源如何决定复现、回退与审计的成本。Windows、macOS 与 Linux 传统发行版在这一点上属于同一类，NixOS 属于另一类。后半部分把这些性质放进 AI Agent 参与系统维护的场景里评估，并给出可核查的规模数字与明确的边界。}
 
 \section{起步：清点一台机器的现状}
 
@@ -13,26 +13,64 @@
   \item 换一台空机器，恢复到现在的状态需要多久？
 \end{enumerate}
 
-前两个问题有部分答案。Windows 的“应用和功能”、macOS 的“应用程序”文件夹、Linux 的包管理器都能列出软件名，版本要在每个程序的“关于”里逐个查看。第三个问题通常没有答案：配置文件散落在 \texttt{/etc}、用户主目录与各程序自己的目录里，改过哪些依赖记忆。
+前两个问题有部分答案。Windows 的“应用和功能”、macOS 的“应用程序”文件夹、Linux 的包管理器都能列出软件名，版本要在每个程序的“关于”里逐个查看。第三个问题通常没有答案：配置散落在注册表、plist、\texttt{/etc}、用户主目录与各程序自己的目录里，改过哪些依赖记忆。
 
 四个问题合起来是系统的状态。第四个问题的答案决定一次故障的代价：重装一遍要一天，还是一小时。
 
 \section{累积的系统}
 
-传统发行版的安装与配置是一串操作。执行 \texttt{apt install} 装一个包，编辑 \texttt{/etc} 下的文件改一项设置，添加一个第三方软件源，半年做一次版本升级。每一步改变一点状态，最终状态是这些操作叠加的结果。
+读者手上的机器多半是 Windows 或 macOS。这两种系统的状态来源，与 Linux 传统发行版相同。
 
-这种来源带来三个后果。
+Windows 的安装与配置是一串操作。双击安装包，程序把文件写进 \texttt{Program Files}，把设置写进注册表，把用户数据写进 \texttt{AppData}。卸载时删除的多是安装器登记过的那部分；注册表里的残留、\texttt{AppData} 下的缓存、别的程序建立的关联项都留在原处。安装顺序也留下痕迹：先装 A 再装 B，与先装 B 再装 A，结果可能不同。
 
-第一，状态没有单一出处。系统的当前形态由操作历史决定，历史分散在命令记录、配置文件与人的记忆里。同一份安装文档在两台机器上执行，得到的往往不是同一套软件：源里的版本已经变了，某一步依赖前一步的残留。
+macOS 的目录结构整齐，来源相同。应用是 \texttt{/Applications} 下的包，系统级设置散在 \texttt{/Library} 与 \texttt{/etc}，用户级设置散在 \texttt{\textasciitilde/Library} 下的 plist 文件里，开机启动项是 \texttt{launchd} 的配置文件。安装开发工具常要再执行几条命令，把文件放进 \texttt{/usr/local} 或 \texttt{/opt/homebrew}。半年之后，某个 plist 由谁写入已无从查起。
 
-第二，复现只能照抄步骤。把步骤写成脚本可以减轻问题，脚本本身又需要维护；脚本执行失败时，系统停在中途状态，无法判断哪些步骤已经生效。
+Linux 传统发行版的形态还不熟悉，机制与上面两者相同：执行 \texttt{apt install} 装一个包，编辑 \texttt{/etc} 下的文件改一项设置，添加一个第三方软件源，半年做一次版本升级。
 
-第三，回退需要事先准备。文件系统快照可以撤销一次坏的升级，恢复的是某个时刻的磁盘内容。它回答“升级前是什么样”，不回答“这套系统由哪些输入构建”。
+四种系统的对照如下表。前三行都是命令式系统，状态的最终形态由操作历史决定。
 
-这类系统称为命令式（imperative）：使用者给出改变状态的命令，系统执行命令，状态随之改变。
+\ifbknarrow
+\begin{itemize}
+  \item \textbf{Windows}：状态由注册表、\texttt{Program Files} 与 \texttt{AppData} 逐次累积；重装后按记忆重配，\texttt{winget} 只列出包名；系统还原退回某一时刻的系统文件与注册表，个人文件不在其中。
+  \item \textbf{macOS}：状态由 \texttt{/Library} 与 \texttt{\textasciitilde/Library} 的 plist、\texttt{launchd} 配置与应用包累积；迁移助理复制旧机器，Brewfile 只列出包名；Time Machine 以备份为单位，前提是备份已经在手。
+  \item \textbf{Linux 传统发行版}：状态由 \texttt{/etc}、包管理器与 dotfiles 累积；复现靠照抄步骤；文件系统快照回到某一时刻的磁盘。
+  \item \textbf{NixOS}：状态由配置表达式与锁文件算出；复现靠同一组输入重建；代回到上一次构建的结果。
+\end{itemize}
+\else
+\begin{center}
+\centering
+\small
+\begin{booktable}{\textwidth}{L{0.80} L{1.20} L{0.95} J{1.05}}
+\caption{四种系统的状态来源与回退方式}\\
+\toprule
+系统 & 状态来源 & 复现方式 & 回退方式 \\
+\midrule
+\endfirsthead
+\toprule
+系统 & 状态来源 & 复现方式 & 回退方式 \\
+\midrule
+\endhead
+Windows & 注册表、\texttt{Program Files} 与 \texttt{AppData} 逐次累积 & 重装后按记忆重配；\texttt{winget} 只列出包名 & 系统还原：某一时刻的系统文件与注册表 \\
+macOS & \texttt{/Library} 与 \texttt{\textasciitilde/Library} 的 plist、\texttt{launchd} 配置、应用包 & 迁移助理复制旧机；Brewfile 只列出包名 & Time Machine：备份，须事先存在 \\
+Linux 传统发行版 & \texttt{/etc}、包管理器、dotfiles 逐次累积 & 照抄安装步骤 & 文件系统快照：某一时刻的磁盘 \\
+NixOS & 配置表达式与锁文件 & 同一组输入重建 & 代：上一次构建的结果 \\
+\bottomrule
+\end{booktable}
+\end{center}
+\fi
+
+三条后果在 Windows、macOS 与 Linux 传统发行版上都能观察到。
+
+第一，状态没有单一出处。系统的当前形态由操作历史决定，历史分散在注册表、plist、\texttt{/etc}、命令记录与人的记忆里。同一份安装文档在两台机器上执行，得到的往往不是同一套软件：源里的版本已经变了，某一步依赖前一步的残留。
+
+第二，复现只能照抄步骤。把步骤写成脚本可以减轻问题，脚本本身又需要维护；脚本执行失败时，系统停在中途状态，无法判断哪些步骤已经生效。Windows 的 \texttt{winget} 与 macOS 的 Homebrew 能把包名列成一份清单，清单不带版本与构建输入，换一台机器装出来的是当天的最新版。
+
+第三，回退需要事先准备。Windows 的系统还原、macOS 的 Time Machine、Linux 的文件系统快照都只能退回某个时刻的磁盘内容，前提是那个时刻的记录已经存在。三者回答“升级前是什么样”，不回答“这套系统由哪些输入构建”。
+
+这类系统称为命令式（imperative）：使用者给出改变状态的命令，系统执行命令，状态随之改变。界面与包格式各不相同，状态的来源是同一个。
 
 \begin{culturenote}
-声明式配置管理并不只属于 NixOS。CFEngine、Puppet、Ansible 同样用配置文件描述目标状态，差别在作用对象。它们把一台已经存在的机器收敛到描述的状态，机器上仍保留未被描述的部分；NixOS 用描述直接构建出系统，未被描述的部分不属于系统。前者的结果是“看起来一样”，后者的结果是“由同一组输入算出”。
+声明式配置管理并不只属于 NixOS。Windows 的组策略与 Intune、macOS 的 MDM、Linux 上的 CFEngine、Puppet、Ansible 同样用配置文件描述目标状态，差别在作用范围。它们把一台已经存在的机器收敛到描述的状态，机器上仍保留未被描述的部分；NixOS 用描述直接构建出系统，未被描述的部分不属于系统。前者的结果是“看起来一样”，后者的结果是“由同一组输入算出”。
 \end{culturenote}
 
 \section{生成的系统}
@@ -51,6 +89,8 @@ NixOS 把系统写成表达式。配置文件声明装哪些包、开哪些服�
 flake 的锁文件固定外部输入的提交号。同一份配置与同一份锁文件，在同一体系结构的不同机器上算出同一组 store 路径。这是可复现的具体含义：判断依据是输入相同，结果相似不足以说明。
 
 配置可以进版本控制。谁在什么时候改了哪一项，\texttt{git log} 有记录；改动是否成立，构建与测试给出答案。
+
+这套写法不限于 NixOS。Nix 本身运行在 Linux 与 macOS 上，Windows 需经 WSL。nix-darwin 用同一套模块写法管理 macOS 的包、服务与系统默认值，本书不涉及。
 
 \section{可复现的范围}
 
@@ -76,6 +116,8 @@ flake 的锁文件固定外部输入的提交号。同一份配置与同一份�
 
 代价是磁盘。每个代引用的闭包都留在 store 里，路径在代际之间共享，但旧代本身不会自动删除。定期清理旧代是日常运维的一部分，命令见第\ref{ch:upgrade-rollback}章。
 
+Windows 与 macOS 上更常见的两种回退也属于快照一类，范围值得辨清。系统还原保存某一时刻的系统文件、注册表与驱动，个人文件不在其中，功能在部分机器上默认关闭。Time Machine 以备份为单位，整盘恢复会把个人文件一并带回，备份之后新写的文件随之消失。两者都要求那个时刻的记录事先存在。
+
 \section{代价}
 
 收益需要与代价一起看。下列六项是使用 NixOS 的主要成本，括号内是 2026 年 11 月的量级。
@@ -88,6 +130,8 @@ flake 的锁文件固定外部输入的提交号。同一份配置与同一份�
   \item flakes 未稳定。flake 自 2021 年作为实验特性引入，2026 年 10 月仍没有转正时间表，接口可能变化。
   \item 支持窗口与平台。26.05 的安全支持到 2026 年 12 月 31 日，约七个月；26.05 是最后一个支持 Intel Mac（x86\_64-darwin）的版本，26.11 起不再构建。
 \end{enumerate}
+
+从 Windows 或 macOS 迁入时，还有一项成本不在表内：终端与包管理的操作习惯需要重建。本书第一部分的顺序按这件事安排，第\ref{ch:first-terminal}章到第\ref{ch:network}章依次建立这套习惯。
 
 \begin{warnbox}[未收录的软件要自行打包]
 nixpkgs 收录十四万个包，仍有软件不在其中。自行编写打包表达式需要读上游的构建脚本，这是初学者最容易停住的一步。先用 \texttt{nix search} 确认有没有现成的包，再决定是否自己写。
@@ -186,6 +230,8 @@ Stack Overflow & 587 个问题 & 累计，约为 archlinux 的 35\% \\
 只固定单个项目的工具链 & 有条件 & 容器或 devcontainer 成本更低 \\
 团队没有维护者与 agent & 不适用 & 文档门槛仍在 \\
 需要厂商长期支持与合规背书 & 有条件 & 支持窗口约七个月，需商业支持 \\
+日常办公、依赖 Windows 或 macOS 专有软件 & 不适用 & 专有软件不能脱离原系统 \\
+已有 Mac、希望沿用同一套写法 & 有条件 & nix-darwin 可复用模块，不管理内核与硬件 \\
 \bottomrule
 \end{booktable}
 
@@ -198,6 +244,7 @@ Stack Overflow & 587 个问题 & 累计，约为 archlinux 的 35\% \\
   \item 找出三项只在记忆里、没有写进任何配置文件的系统改动，写下它们的来源。
   \item 用一个段落说明快照回滚与代回滚的差别，各给一个适用场景。
   \item 用“代价”与“规模与位置”两节的数据，说明 NixOS 在增长、同时仍是小众发行版。
+  \item 对比系统还原、Time Machine 与代回滚：各能回答哪些问题，各不能回答哪些问题。
   \item 列出一项本章没有提到、但 agent 修改系统时会需要的约束，说明理由。
 \end{enumerate}
 
@@ -205,6 +252,7 @@ Stack Overflow & 587 个问题 & 累计，约为 archlinux 的 35\% \\
 本章结束时，应能：
 \begin{itemize}
   \item 说明命令式与声明式两种系统状态的来源与后果；
+  \item 用注册表、plist 与 \texttt{/etc} 各举一例，说明三种系统的状态来源相同；
   \item 描述一次重建的四个阶段，指出每个阶段的产物；
   \item 区分可复现覆盖的范围与不覆盖的范围；
   \item 说明快照回滚与代回滚各自的语义与代价；

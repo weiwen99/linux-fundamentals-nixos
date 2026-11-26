@@ -1,0 +1,316 @@
+\chapter{安装 NixOS}
+\label{ch:install}
+\chapterlead{本章在一台实体计算机上完成安装：制作安装介质、确认磁盘与固件、分区、生成配置、执行安装。没有可整机安装的机器时走第\ref{ch:install-vm}章的虚拟机路线，租用服务器时走第\ref{ch:vps}章。}
+
+\section{三条路线}
+
+安装 NixOS 有三条路线，差别在目标机器、出错代价与能覆盖的内容。
+
+\begin{center}
+\centering
+\small
+\begin{booktable}{\textwidth}{L{0.72} L{0.98} L{1.28} J{1.02}}
+\caption{三条安装路线}\\
+\toprule
+路线 & 目标机器 & 覆盖范围 & 主要代价 \\
+\midrule
+\endfirsthead
+\toprule
+路线 & 目标机器 & 覆盖范围 & 主要代价 \\
+\midrule
+\endhead
+实体机 & 一台可整机安装的计算机 & 安装、显卡、无线、蓝牙、休眠、固件、双系统 & 分区不可撤销，需先备份 \\
+虚拟机 & 现有计算机上的虚拟磁盘 & 安装、配置与回滚全流程 & 无真实硬件，性能受宿主限制 \\
+VPS & 租用的远程服务器 & 公网服务、域名、TLS、远程运维 & 每月数十元，无图形界面 \\
+\bottomrule
+\end{booktable}
+\end{center}
+
+本书以实体机为主路线，理由有三条。
+
+第一，本书讲的是日常使用的系统。实体机开机即用；虚拟机每次要先启动宿主，再启动系统，中间隔着一层不属于 Linux 的软件。
+
+第二，硬件是本书的一条主线。显卡驱动、无线网卡、蓝牙、休眠、固件更新只能在实体机上遇到，这些内容构成第\ref{ch:hardware}章与第\ref{ch:desktop}章。
+
+第三，实体机安装会真实地处理磁盘与引导。分区表、EFI 分区、引导顺序是后续故障排查的常见来源，亲手做过一遍，第\ref{ch:troubleshooting}章的排查路径才有依据。
+
+代价同样要说明。实体机的分区操作不可撤销，写错目标会清空那块磁盘。本章“确认磁盘与固件”一节要求先备份，并在动手前用型号与序列号确认目标盘。
+
+只有一台正在使用的计算机时，有两条退路。用虚拟机：流程与本章相同，风险为零，代价是没有硬件那一层经验，见第\ref{ch:install-vm}章。或者保留原有系统，缩小它的分区，把 NixOS 装在空出来的空间里，两者共存，做法见本章“双系统”一节。
+
+\section{下载镜像}
+
+访问 \url{https://nixos.org/download}，选择 NixOS 26.11 的图形安装镜像（GNOME ISO），约 2 至 3\,GB。镜像分带图形界面与最小化两个版本；本书使用前者，安装过程中可在图形环境里查资料。
+
+下载后核对校验值。SHA-256 以官网公布的值为准，不从第三方博客抄录。
+
+\begin{shellsession}
+$ sha256sum nixos-gnome-26.11-x86_64-linux.iso
+\end{shellsession}
+
+Windows 使用 PowerShell 的 \texttt{Get-FileHash}，macOS 使用 \texttt{shasum -a 256}。输出与官网一致后方可继续。
+
+Apple Silicon 的 Mac 需下载 \texttt{aarch64} 镜像，其余平台下载 \texttt{x86\_64} 镜像，安装步骤相同。
+
+\section{制作安装介质}
+
+需要一个 4\,GB 以上的 U 盘，内容会被清空。
+
+\begin{shellsession}
+$ lsblk                      # 确认 U 盘设备名，例如 /dev/sdb
+$ sudo dd if=nixos-gnome-26.11-x86_64-linux.iso of=/dev/sdb bs=4M status=progress oflag=sync
+\end{shellsession}
+
+\texttt{of=} 必须写整块设备（\texttt{/dev/sdb}），不是分区（\texttt{/dev/sdb1}）。写错目标会毁掉那块磁盘上的数据。Windows 上可用 Rufus 或 balenaEtcher，macOS 上同样用 \texttt{dd}，设备名为 \texttt{/dev/rdisk2} 一类。
+
+写完用 \texttt{sha256sum} 比对 U 盘内容与镜像；两者一致，才排除介质写坏的故障来源。
+
+\section{确认磁盘与固件}
+
+从 U 盘启动之前，先在原系统里记下目标磁盘的型号与序列号。装完之后这两项容易混淆，装之前记一次，分区时才有依据。
+
+\begin{shellsession}
+$ lsblk -o NAME,SIZE,MODEL,SERIAL
+$ ls /sys/firmware/efi && echo "UEFI 启动"
+$ mokutil --sb-state
+\end{shellsession}
+
+\texttt{MODEL} 与 \texttt{SERIAL} 用于确认目标盘，避免误操作。\texttt{/sys/firmware/efi} 存在说明当前以 UEFI 模式启动，这是 NixOS 默认引导方式的前提。\texttt{mokutil} 报告 Secure Boot 状态；开启时需要额外处理签名，初次安装建议先在固件设置里关闭。
+
+\begin{warnbox}[先备份再分区]
+实体机上的分区操作不可撤销。安装前把原有数据复制到外部磁盘，并确认备份可以读取。安装双系统时，尤其要确认 Windows 的快速启动与休眠已关闭，否则它的分区会处于不一致状态。
+\end{warnbox}
+
+\section{进入安装环境}
+
+插入 U 盘，开机时按固件设定的键（常见为 \texttt{F2}、\texttt{F12}、\texttt{Esc}）选择从 U 盘启动。
+
+启动后进入 GNOME 桌面，桌面上有“Install NixOS”图标与一个终端。图形安装器可以完成基本安装，本书采用命令行方式，原因有两点：命令可复制、可比对、可记入笔记；图形安装器的每个选项最终也写入同一份配置文件。
+
+打开终端，确认网络与磁盘。
+
+\begin{shellsession}
+$ ping -c 3 nixos.org
+$ lsblk
+NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+sda           8:0    0 476.9G  0 disk
+sda1          8:1    0   512M  0 part
+sda2          8:2    0 476.4G  0 part
+nvme0n1     259:0    0 931.5G  0 disk
+\end{shellsession}
+
+磁盘名有两种常见形态。\texttt{sda} 是 SATA 或 USB 接的磁盘；\texttt{nvme0n1} 是 NVMe 固态盘，\texttt{n1} 表示第一块，分区后在名称后追加 \texttt{p1}、\texttt{p2}，成为 \texttt{nvme0n1p1}。两种命名的分区写法不同，分区前先看清。
+
+\section{分区与格式化}
+
+下列命令会清空整块磁盘。虚拟机中无数据损失，实体机上一去不返，执行前用上一节的输出确认设备名。
+
+\begin{shellsession}
+$ sudo parted /dev/nvme0n1 -- mklabel gpt
+$ sudo parted /dev/nvme0n1 -- mkpart ESP fat32 1MiB 512MiB
+$ sudo parted /dev/nvme0n1 -- set 1 esp on
+$ sudo parted /dev/nvme0n1 -- mkpart root ext4 512MiB 100%
+$ sudo mkfs.fat -F 32 -n boot /dev/nvme0n1p1
+$ sudo mkfs.ext4 -L nixos /dev/nvme0n1p2
+$ sudo mount /dev/disk/by-label/nixos /mnt
+$ sudo mkdir -p /mnt/boot
+$ sudo mount /dev/disk/by-label/boot /mnt/boot
+\end{shellsession}
+
+上面的方案分两个区：512\,MB 的 EFI 分区存放引导程序，其余空间全部给根分区。布局简单，覆盖本书全部实验。其他情形按下表调整。
+
+\begin{booktable}{\textwidth}{J{0.846} J{1.154}}
+\toprule
+方案 & 组成 \\
+\midrule
+\endhead
+最简 & EFI 512\,MB + 根分区（余下全部）\\
+含交换 & EFI 512\,MB + 交换（内存大小）+ 根分区 \\
+分离 home & EFI 512\,MB + 根 40--60\,GB + home（余下）\\
+加密 & EFI 512\,MB + LUKS 容器，容器内含交换与根 \\
+\bottomrule
+\end{booktable}
+
+分离 \texttt{/home} 的好处是重装系统时保留用户数据；代价是分区大小需要预先规划。加密适合笔记本：设备丢失时数据不可读，代价是每次开机要输入口令，且无法远程重启后自动解锁（可配合 SSH 解锁方案，但增加复杂度）。
+
+加密安装的骨架：
+
+\begin{shellsession}
+$ sudo cryptsetup luksFormat /dev/nvme0n1p2
+$ sudo cryptsetup open /dev/nvme0n1p2 cryptroot
+$ sudo mkfs.ext4 /dev/mapper/cryptroot
+$ sudo mount /dev/mapper/cryptroot /mnt
+\end{shellsession}
+
+生成的 \texttt{hardware-configuration.nix} 会包含解密配置；若没有，需要手工补 \texttt{boot.initrd.luks.devices}。
+
+\texttt{mkfs} 意为“建立文件系统”。刚完成分区的磁盘仅是一段空闲区域，\texttt{mkfs.ext4} 在其上写入目录结构、空闲块表等元数据，操作系统才能存放文件。EFI 分区必须使用 FAT32，这是固件的要求。
+
+\section{生成初始配置}
+
+\begin{shellsession}
+$ sudo nixos-generate-config --root /mnt
+writing /mnt/etc/nixos/hardware-configuration.nix...
+writing /mnt/etc/nixos/configuration.nix...
+\end{shellsession}
+
+命令生成两份文件。\texttt{hardware-\allowbreak{}configuration.\allowbreak{}nix} 记录磁盘、分区、内核模块与 CPU 特性，不应手改；重装或更换硬件时重新生成。\texttt{configuration.\allowbreak{}nix} 是需要编辑的文件，初始状态多为注释。
+
+用 nano 打开（首次使用 nano 比 vim 直接：\texttt{Ctrl+O} 保存，\texttt{Ctrl+X} 退出）。
+
+\begin{shellsession}
+$ sudo nano /mnt/etc/nixos/configuration.nix
+\end{shellsession}
+
+修改下列各项，其余保持默认。
+
+\begin{nixcode}
+{ config, pkgs, ... }:
+
+{
+  imports = [ ./hardware-configuration.nix ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  networking.hostName = "nixos-lab";
+  networking.networkmanager.enable = true;
+
+  time.timeZone = "Asia/Shanghai";
+  i18n.defaultLocale = "zh_CN.UTF-8";
+\end{nixcode}
+
+文件尚未结束，继续找到用户与软件包部分。
+
+\begin{nixcode}
+  services.openssh.enable = true;
+
+  users.users.weiwen = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" ];
+    initialPassword = "change-me";
+  };
+
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+    curl
+    htop
+  ];
+
+  system.stateVersion = "26.11";
+}
+\end{nixcode}
+
+各项含义如下。
+
+\begin{itemize}
+  \item \texttt{systemd-boot} 是引导程序，负责将内核交给机器。
+  \item \texttt{hostName} 是主机名，显示在提示符中。
+  \item \texttt{NetworkManager} 管理网络，实体机与虚拟机均适用。
+  \item \texttt{timeZone} 与 \texttt{defaultLocale} 决定时区与语言。\texttt{zh\_CN.UTF-8} 使系统支持中文显示；终端输出建议保持英文，便于检索报错。
+  \item \texttt{services.\allowbreak{}openssh} 启用 SSH 服务，第\ref{ch:network}章使用。
+  \item \texttt{extraGroups} 中的 \texttt{wheel} 表示该用户可通过 \texttt{sudo} 取得管理员权限。
+  \item \texttt{initialPassword} 是首次登录的临时密码，登录后应立即修改。
+  \item \texttt{stateVersion} 标记配置面向的版本，安装后不要修改，原因见第\ref{ch:configuration}章。
+\end{itemize}
+
+\begin{warnbox}[缩进与分号]
+Nix 以空白分隔，以分号结束每一项，以花括号分组。缺少一个分号会导致整次重建失败。报错会指出行号，按行号定位，不要凭印象猜测。
+\end{warnbox}
+
+\section{执行安装}
+
+\begin{shellsession}
+$ sudo nixos-install
+\end{shellsession}
+
+该命令下载并构建系统，视网络状况需要十几分钟。过程中会要求设置 root 密码。结束时输出重启提示。
+
+\begin{shellsession}
+$ sudo reboot
+\end{shellsession}
+
+重启前拔掉 U 盘。重启后出现引导菜单，默认项即刚安装的系统。登录界面使用创建的用户名与 \texttt{initialPassword} 中的密码。
+
+\section{首次登录后的三项操作}
+
+\begin{shellsession}
+$ nixos-version
+26.11.20261113.d5cc683 (Zokor)
+$ sudo passwd weiwen
+$ sudo nixos-rebuild switch
+\end{shellsession}
+
+第一项确认版本。第二项替换临时密码。第三项执行一次重建，确认流程可用；此后每次修改配置都使用同一条命令。
+
+\section{双系统}
+
+与 Windows 共存时，保留它的 EFI 分区，把 NixOS 装在空闲分区上。安装前在 Windows 的磁盘管理里压缩出空间，不要删除它的分区。
+
+\begin{nixcode}
+boot.loader = {
+  systemd-boot.enable = true;
+  efi.canTouchEfiVariables = true;
+  systemd-boot.windows = {
+    "windows" = {
+      title = "Windows";
+      efiDeviceHandle = "HD0b";
+    };
+  };
+};
+\end{nixcode}
+
+\texttt{efiDeviceHandle} 需要按实际情况填写，可用 \texttt{bootctl list} 查看。另一种做法是在固件启动菜单里切换，不改配置。
+
+Windows 更新有时会重写引导顺序，导致直接进入 Windows。此时进固件设置把 NixOS 调回第一位，或在 Windows 中用 \texttt{bcdedit} 调整。
+
+\section{笔记本的额外步骤}
+
+装完后补齐无线、蓝牙、电源与背光。
+
+\begin{nixcode}
+hardware.enableRedistributableFirmware = true;
+hardware.bluetooth.enable = true;
+services.tlp.enable = true;
+services.fwupd.enable = true;
+
+# 部分机型需要显式声明内核模块
+boot.kernelModules = [ "kvm-intel" ];
+boot.kernelParams = [ "mem_sleep_default=deep" ];
+\end{nixcode}
+
+\texttt{fwupd} 用于固件更新，执行 \texttt{fwupdmgr get-updates} 查看可更新的固件。\texttt{mem\_sleep\_default=deep} 让部分机型进入真正的休眠而不是待机耗电状态。
+
+\begin{shellsession}
+$ sudo nixos-generate-config --show-hardware-config > /tmp/hw.nix
+$ diff /tmp/hw.nix /etc/nixos/hardware-configuration.nix
+\end{shellsession}
+
+重装或更换硬件后重新生成硬件配置，用 \texttt{diff} 对比可以看清哪些设备变了。
+
+\section{练习：改坏并恢复}
+
+本章的核心练习。目标是建立对回滚机制的直接经验：系统配置可以改坏，也有确定的恢复路径。
+
+\begin{enumerate}
+  \item 用 \texttt{lsblk -o NAME,SIZE,MODEL,SERIAL} 记录目标磁盘的型号与序列号，说明分区命令里哪个参数对应它。
+  \item 将 \texttt{configuration.\allowbreak{}nix} 中的 \texttt{networking.\allowbreak{}hostName} 改为 \texttt{broken-host}，执行 \texttt{sudo nixos-\allowbreak{}rebuild switch}。退出重新登录，提示符中的主机名随之改变。
+  \item 制造一处语法错误，例如删除一个分号，重新构建。记录报错内容，按行号定位问题。
+  \item 执行 \texttt{sudo nixos-rebuild switch -{}-rollback} 回到上一代。重新登录，主机名恢复。
+  \item 执行 \texttt{sudo nixos-\allowbreak{}rebuild list-\allowbreak{}generations}，统计当前存在几代系统。
+  \item 用 \texttt{fwupdmgr get-devices} 列出可更新固件的设备。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 说明三条安装路线各自的适用条件与代价；
+  \item 用 \texttt{dd} 制作安装介质，知道写错目标的后果；
+  \item 从 \texttt{lsblk} 输出判断磁盘名与分区命名方式；
+  \item 说明 EFI 分区与根分区各自的用途，在四种分区方案中选择一种；
+  \item 读懂 \texttt{configuration.\allowbreak{}nix} 中常用的选项；
+  \item 用 \texttt{nixos-\allowbreak{}rebuild switch} 应用配置，用 \texttt{-{}-rollback} 撤销；
+  \item 在配置出错后按确定步骤恢复到可用状态。
+\end{itemize}
+\end{checkpoint}

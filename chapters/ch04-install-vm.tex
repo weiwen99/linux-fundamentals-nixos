@@ -1,0 +1,78 @@
+\chapter{在虚拟机里安装}
+\label{ch:install-vm}
+\chapterlead{没有可整机安装的计算机时，虚拟机是起点。安装流程与第\ref{ch:install}章相同，差异集中在虚拟磁盘、引导与网络。虚拟机的额外好处是整机快照：实验做坏了可以整块丢弃。}
+
+\section{先决条件}
+
+宿主机需满足：内存 8\,GB 以上，可用磁盘 30\,GB 以上。虚拟机分配 2 个处理器核心、4\,GB 内存、20\,GB 磁盘，足够本书使用。
+
+虚拟化软件按宿主系统选择。
+
+\begin{booktable}{\textwidth}{L{0.980} L{1.194} J{0.826}}
+\toprule
+软件 & 平台 & 说明 \\
+\midrule
+\endhead
+VirtualBox & Windows、Linux、Intel Mac & 免费，界面直观，本章以此为例 \\
+GNOME Boxes & Linux & 多数发行版可直接安装，配置最少 \\
+UTM & Apple Silicon Mac & 免费，支持 aarch64 虚拟机 \\
+VMware Workstation & Windows、Linux & 性能较好，个人使用免费 \\
+\bottomrule
+\end{booktable}
+
+\section{创建虚拟机}
+
+以 VirtualBox 为例。新建虚拟机，类型 Linux，版本 Other Linux (64-bit)；内存 4096\,MB，处理器 2 个，磁盘 20\,GB。在“系统”设置中启用 EFI，在“显示”中将显存调至 128\,MB。
+
+创建完成后，在“存储”中把光盘指向第\ref{ch:install}章下载的 ISO，启动。
+
+VirtualBox 有一处常见问题：默认图形控制器可能导致安装界面显示异常。启动后若黑屏，关机，将“显示 \textrightarrow\ 图形控制器”改为 VMSVGA，再次启动。
+
+\begin{notebox}[为什么启用 EFI]
+NixOS 默认使用 systemd-boot 引导，需要 EFI 分区。虚拟机启用 EFI，与实体机以 UEFI 模式启动安装介质等价，同一份配置在两边都能用。
+\end{notebox}
+
+\section{与实体机流程的差异}
+
+安装步骤从第\ref{ch:install}章的“进入安装环境”开始，四件事不同。
+
+第一，不需要制作安装介质。ISO 直接挂在虚拟光驱上，也不必确认固件模式：启用 EFI 就等于 UEFI 启动。
+
+第二，磁盘名是 \texttt{vda}。名称中的 \texttt{a} 表示第一块盘，分区后成为 \texttt{vda1}、\texttt{vda2}。分区命令把 \texttt{/dev/nvme0n1} 换成 \texttt{/dev/vda}、分区号换成 \texttt{/dev/vda1}、\texttt{/dev/vda2} 即可。
+
+第三，分区用最简的两分区方案。“双系统”与“笔记本的额外步骤”两节跳过，虚拟机没有对应的硬件。
+
+第四，网络是宿主上的 NAT。虚拟机可以主动访问外网，宿主机访问虚拟机需要配置端口转发，第\ref{ch:network}章的 SSH 练习会用到。
+
+\begin{shellsession}
+$ lsblk
+NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0     11:0    1  2.4G  0 rom
+vda    254:0    1   20G  0 disk
+\end{shellsession}
+
+\section{快照}
+
+虚拟机的价值在于可以随意破坏。安装完成、首次登录之后，立刻在虚拟化软件里拍一张快照。此后的实验无论怎么改坏，都能整块回到这张快照，不必依赖 NixOS 自身的回滚。
+
+快照与代回滚覆盖的范围不同。快照连用户主目录与数据库一起带回，代回滚只管系统配置，个人数据留在原处。两者互补，第\ref{ch:upgrade-rollback}章会用到。
+
+\section{练习}
+
+\begin{enumerate}
+  \item 按本章步骤创建虚拟机并完成安装，记录从启动到登录界面的耗时。
+  \item 安装完成后立刻拍一张快照，命名为 \texttt{installed}。
+  \item 把 \texttt{/etc/nixos} 整个目录删掉，执行 \texttt{sudo nixos-rebuild switch}，记录报错；再用快照恢复，说明恢复后 \texttt{/etc/nixos} 的内容。
+  \item 对比 \texttt{lsblk} 的输出与第\ref{ch:install}章实体机的例子，指出磁盘名与分区名的差别。
+\end{enumerate}
+
+\begin{checkpoint}
+本章结束时，应能：
+\begin{itemize}
+  \item 说明虚拟机路线与实体机路线各自适用的情况；
+  \item 创建启用 EFI 的虚拟机并完成安装；
+  \item 把实体机章节的命令改写为虚拟磁盘版本；
+  \item 用快照恢复一台被改坏的实验机；
+  \item 说清快照与代回滚各自覆盖的范围。
+\end{itemize}
+\end{checkpoint}
