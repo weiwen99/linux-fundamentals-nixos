@@ -41,6 +41,30 @@ JSON 取值 & \texttt{jq '.a.b'} & \ref{ch:cli-toolbox} \\
 \bottomrule
 \end{booktable}
 
+\section{编辑与行编辑}
+
+附录用 Emacs 简写：\texttt{C-} 表示 Ctrl，\texttt{M-} 表示 Alt。
+
+\begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}
+\toprule
+任务 & 按键或命令 & 章节 \\
+\midrule
+\endhead
+终端里启动 Emacs & \texttt{emacs -nw 文件} & \ref{ch:editor-workflow} \\
+Emacs 打开、保存、退出 & \texttt{C-x C-f}、\texttt{C-x C-s}、\texttt{C-x C-c} & \ref{ch:editor-workflow} \\
+Emacs 取消当前命令 & \texttt{C-g} & \ref{ch:editor-workflow} \\
+Emacs 选区与剪切 & \texttt{C-space}、\texttt{C-w}、\texttt{M-w}、\texttt{C-y} & \ref{ch:editor-workflow} \\
+vim 存盘退出 & \texttt{:wq}、\texttt{:q!} & \ref{ch:editor-workflow} \\
+行首、行尾（两者通用） & \texttt{C-a}、\texttt{C-e} & \ref{ch:first-terminal} \\
+命令行删到行首、行尾 & \texttt{C-u}、\texttt{C-k} & \ref{ch:first-terminal} \\
+命令行按词移动、删词 & \texttt{M-b}、\texttt{M-f}、\texttt{M-d} & \ref{ch:first-terminal} \\
+命令行删前一个词 & \texttt{C-w}（Emacs 里是剪切选区） & \ref{ch:first-terminal} \\
+粘贴与交换字符 & \texttt{C-y}、\texttt{C-t} & \ref{ch:first-terminal} \\
+用编辑器写当前行 & \texttt{C-x C-e}（先用 \texttt{VISUAL} 或 \texttt{EDITOR}） & \ref{ch:first-terminal} \\
+重读 inputrc & \texttt{bind -f \textasciitilde/.inputrc} & \ref{ch:first-terminal} \\
+\bottomrule
+\end{booktable}
+
 \section{权限与进程}
 
 \begin{booktable}{\textwidth}{J{0.90} J{1.20} J{0.90}}

@@ -12,10 +12,10 @@
 
 | 文件 | 纸张与字号 | 页数 |
 |---|---|---|
-| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 194 |
-| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 198 |
-| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 382 |
-| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 271 |
+| [`dist/linux-fundamentals-nixos-A4-screen.pdf`](dist/linux-fundamentals-nixos-A4-screen.pdf) | A4，11pt，彩色 | 205 |
+| [`dist/linux-fundamentals-nixos-A4-print.pdf`](dist/linux-fundamentals-nixos-A4-print.pdf) | A4，11pt，双面装订 | 211 |
+| [`dist/linux-fundamentals-nixos-6inch-ereader.pdf`](dist/linux-fundamentals-nixos-6inch-ereader.pdf) | 91 × 122 mm，9pt，灰度 | 394 |
+| [`dist/linux-fundamentals-nixos-phone.pdf`](dist/linux-fundamentals-nixos-phone.pdf) | 88 × 176 mm，9pt，彩色 | 278 |
 
 页数随版本变化，以文件为准。每个版本的 PDF 也附在
 [Releases](https://github.com/weiwen99/linux-fundamentals-nixos/releases) 里，

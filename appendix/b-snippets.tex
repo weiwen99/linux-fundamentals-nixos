@@ -13,7 +13,7 @@
   time.timeZone = "Asia/Shanghai";
   i18n.defaultLocale = "zh_CN.UTF-8";
 
-  # 中文显示与输入（第十七章）
+  # 中文显示与输入（第十八章）
   fonts.packages = with pkgs; [ noto-fonts-cjk-sans noto-fonts-cjk-serif sarasa-gothic ];
   i18n.inputMethod = {
     enable = true;
@@ -21,12 +21,12 @@
     fcitx5.addons = with pkgs; [ fcitx5-chinese-addons ];
   };
 
-  # 常用工具（第十四章）
+  # 常用工具（第十五章）
   environment.systemPackages = with pkgs; [
     git vim curl htop jq ripgrep fd
   ];
 
-  # 自动清理（第十六章）
+  # 自动清理（第十七章）
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -96,7 +96,7 @@
     defaults.email = "admin@example.com";
   };
 
-  # 后端服务（第九章）
+  # 后端服务（第十章）
   systemd.services.api = {
     description = "API service";
     wantedBy = [ "multi-user.target" ];
@@ -128,7 +128,7 @@
 
 \begin{nixcode}
 {
-  # Hyprland（第十七章）
+  # Hyprland（第十八章）
   programs.hyprland.enable = true;
   services.displayManager.ly.enable = true;
 
@@ -137,7 +137,7 @@
   services.mako.enable = true;
   environment.systemPackages = with pkgs; [ grim slurp wl-clipboard ];
 
-  # 硬件（第十八章）
+  # 硬件（第十九章）
   hardware.bluetooth.enable = true;
   hardware.enableRedistributableFirmware = true;
   services.tlp.enable = true;
@@ -170,5 +170,26 @@
   programs.starship.enable = true;
 
   home.packages = with pkgs; [ ripgrep fd bat eza jq ];
+
+  # Emacs：终端版，配置写入 default.el（第二十一章）
+  programs.emacs = {
+    enable = true;
+    package = pkgs.emacs-nox;
+    extraPackages = epkgs: [ epkgs.magit epkgs.markdown-mode ];
+    extraConfig = ''
+      (setq make-backup-files nil)
+      (global-display-line-numbers-mode 1)
+    '';
+  };
+
+  # 行编辑：与 Emacs 同一套键位（第六章）
+  home.file.".inputrc".text = ''
+    set editing-mode emacs
+    set completion-ignore-case on
+  '';
+  programs.zsh = {
+    enable = true;
+    initExtra = "bindkey -e";
+  };
 }
 \end{nixcode}

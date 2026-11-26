@@ -61,12 +61,15 @@ build_one() {
   echo "==> 构建版式 $v"
   # minted 需要显式告知输出目录，否则在没有缓存时无法写入 Python 产物。
   mkdir -p "build/$v"
+  # 先删旧 PDF：构建失败时若旧文件仍在，会被误判为成功（曾发生一次）。
+  rm -f "$pdf"
   export TEXMF_OUTPUT_DIRECTORY="$PWD/build/$v"
   # 首轮常因缺少 .toc/.out 而以非零码结束，判据是 PDF 是否生成；
   # 未生成时再跑一轮，让交叉引用稳定。
-  BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
+  # 单遍限时 15 分钟：出现无限分页时 latexmk 不会自己退出。
+  BK_OUT="build/$v" timeout 900 latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
   if [[ ! -f $pdf ]]; then
-    BK_OUT="build/$v" latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
+    BK_OUT="build/$v" timeout 900 latexmk -f -jobname="main-$v" "variants/$v.tex" >/dev/null 2>&1 || true
   fi
   if [[ -f $pdf ]]; then
     echo "    $pdf ($(pdfinfo "$pdf" | awk '/Pages/{print $2}') 页)"
@@ -74,7 +77,9 @@ build_one() {
     cp -f "$pdf" "dist/${DISTNAME[$v]}"
     echo "    dist/${DISTNAME[$v]}"
   else
-    echo "    构建失败：未生成 $pdf" >&2
+    # 无限分页会污染 .aux 与 .toc（出现过十几 MB 的 aux），后续构建会跟着失败。
+    echo "    构建失败：未生成 $pdf（已清理 build/$v）" >&2
+    rm -rf "build/$v"
     return 1
   fi
 }

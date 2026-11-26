@@ -1,6 +1,39 @@
 \chapter{症状索引}
 \chapterlead{从现象跳到章节。每条给出第一步该运行的命令，避免在错误的方向上排查。}
 
+% 窄版式用列表、宽版式用表格，是两份手工维护的副本：增删条目须同时改两处。
+
+\ifbknarrow
+\begin{itemize}
+  \item \textbf{命令找不到}：\texttt{command -v 名字}；\texttt{echo \$PATH}（第\ref{ch:first-terminal}章）
+  \item \textbf{权限不足}：\texttt{namei -l 路径}（第\ref{ch:permissions}章）
+  \item \textbf{文件不存在}：\texttt{pwd}；\texttt{ls -l 路径}（第\ref{ch:first-terminal}、\ref{ch:files-and-dirs}章）
+  \item \textbf{提示符变成 \texttt{>}}：按 \texttt{Ctrl+C} 放弃该行（第\ref{ch:first-terminal}章）
+  \item \textbf{磁盘写满}：\texttt{df -h}；\texttt{du -xh /}（第\ref{ch:troubleshooting}章）
+  \item \textbf{内存耗尽、进程被杀}：\texttt{journalctl -k} 搜 OOM（第\ref{ch:troubleshooting}章）
+  \item \textbf{服务起不来}：\texttt{systemctl status 单元}（第\ref{ch:processes}、\ref{ch:troubleshooting}章）
+  \item \textbf{端口被占用}：\texttt{ss -tlnp | grep 端口}（第\ref{ch:network}章）
+  \item \textbf{能 ping 通但打不开网页}：\texttt{dig +short 域名}（第\ref{ch:network}、\ref{ch:troubleshooting}章）
+  \item \textbf{SSH 连不上}：\texttt{ss -tlnp}；查 sshd 日志（第\ref{ch:server-access}章）
+  \item \textbf{SSH 要求密码而非密钥}：\texttt{ls -l \textasciitilde/.ssh}（第\ref{ch:network}章）
+  \item \textbf{重建失败、报选项不存在}：\texttt{nixos-option} 核对拼写（第\ref{ch:configuration}章）
+  \item \textbf{重建后服务异常}：\texttt{nixos-rebuild -{}-rollback}（第\ref{ch:upgrade-rollback}章）
+  \item \textbf{系统起不来}：引导菜单选旧代；或 \texttt{nixos-enter}（第\ref{ch:upgrade-rollback}、\ref{ch:troubleshooting}章）
+  \item \textbf{磁盘占用持续增长}：\texttt{nix-collect-garbage -{}-dry-run}（第\ref{ch:upgrade-rollback}章）
+  \item \textbf{中文显示为方框}：检查 \texttt{fonts.packages}（第\ref{ch:desktop}章）
+  \item \textbf{中文无法上屏}：查输入法环境变量与 fcitx5（第\ref{ch:desktop}章）
+  \item \textbf{笔记本唤醒后蓝牙失灵}：\texttt{powerManagement.\allowbreak resumeCommands}（第\ref{ch:hardware}章）
+  \item \textbf{硬件没被识别}：\texttt{lspci -k}；\texttt{dmesg} 查固件（第\ref{ch:hardware}章）
+  \item \textbf{显卡驱动后黑屏}：引导菜单选旧代，换驱动版本（第\ref{ch:upgrade-rollback}、\ref{ch:hardware}章）
+  \item \textbf{证书申请失败}：\texttt{journalctl -u acme-域名}（第\ref{ch:public-service}章）
+  \item \textbf{备份成功但无法恢复}：\texttt{restic check} 抽样校验（第\ref{ch:backup}章）
+  \item \textbf{Agent 改动范围失控}：\texttt{git status --short}（第\ref{ch:agent-safety}章）
+  \item \textbf{Emacs 按键无反应、停在半截}：按 \texttt{Ctrl+g} 取消（第\ref{ch:editor-workflow}章）
+  \item \textbf{终端里 \texttt{Ctrl+s} 像卡死}：按 \texttt{Ctrl+q} 恢复输出（第\ref{ch:first-terminal}章）
+  \item \textbf{改完 inputrc 不生效}：\texttt{bind -f \textasciitilde/.inputrc}（第\ref{ch:first-terminal}章）
+  \item \textbf{Agent 成本异常}：拆分会话，换小模型（第\ref{ch:oh-my-pi}、\ref{ch:agent-safety}章）
+\end{itemize}
+\else
 \begin{booktable}{\textwidth}{J{1.10} J{1.05} J{0.55}}
 \toprule
 现象 & 第一条命令 & 章 \\
@@ -37,9 +70,13 @@ SSH 要求密码而非密钥 & \texttt{ls -l \textasciitilde/.ssh} & \ref{ch:net
 证书申请失败 & \texttt{journalctl -u acme-域名} & \ref{ch:public-service} \\
 备份成功但无法恢复 & \texttt{restic check} 抽样校验 & \ref{ch:backup} \\
 Agent 改动范围失控 & \texttt{git status --short} & \ref{ch:agent-safety} \\
+Emacs 按键无反应、停在半截 & 按 \texttt{Ctrl+g} 取消 & \ref{ch:editor-workflow} \\
+终端里 \texttt{Ctrl+s} 像卡死 & 按 \texttt{Ctrl+q} 恢复输出 & \ref{ch:first-terminal} \\
+改完 inputrc 不生效 & \texttt{bind -f \textasciitilde/.inputrc} & \ref{ch:first-terminal} \\
 Agent 成本异常 & 拆分会话，换小模型 & \ref{ch:oh-my-pi}、\ref{ch:agent-safety} \\
 \bottomrule
 \end{booktable}
+\fi
 
 \section{三条通用规则}
 

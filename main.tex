@@ -68,4 +68,8 @@
 \input{appendix/d-reading}
 \input{appendix/e-symptoms}
 
+% 显式分页再结束：窄版式下 \end{document} 的隐式清页曾进入无限循环
+% （页数暴涨、xdv 膨胀到数百 MB）。显式 \clearpage 先把浮动体与表格收尾，
+% 再结束文档。见 docs/build.md 的「窄版式的无限分页」。
+\clearpage
 \end{document}

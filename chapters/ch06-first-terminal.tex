@@ -97,6 +97,67 @@ $ cd My Documents        # 被解析为两个参数：My 与 Documents
 
 补全与历史的作用不止于节省时间：它们同时避免了拼写错误引起的误操作。
 
+\section{行编辑：readline}
+
+提示符下输入的每一行，由行编辑库处理。bash 用的是 GNU Readline；zsh 用自己的 ZLE，默认同样是 Emacs 键位。Python 的交互解释器、\texttt{psql}、\texttt{mysql} 客户端也使用 readline 或等价实现。这套键位大部分与 Emacs 相同，两个例外在下面的表后说明。
+
+\begin{booktable}{\textwidth}{L{0.72} L{0.94} J{1.34}}
+\toprule
+键位 & 动作 & 用途 \\
+\midrule
+\endhead
+\texttt{Ctrl+a} & 移到行首 & 改一条长命令的开头 \\
+\texttt{Ctrl+e} & 移到行尾 & 回到末尾继续输入 \\
+\texttt{Ctrl+b}、\texttt{Ctrl+f} & 左移、右移一个字符 & 逐字调整 \\
+\texttt{Alt+b}、\texttt{Alt+f} & 左移、右移一个词 & 按词跳转，比逐字快 \\
+\texttt{Ctrl+k} & 删除光标到行尾 & 丢掉后半段 \\
+\texttt{Ctrl+u} & 删除光标到行首 & 丢掉前半段 \\
+\texttt{Ctrl+w} & 删除前一个词 & 相当于删一个参数 \\
+\texttt{Alt+d} & 删除后一个词 & 局部修改 \\
+\texttt{Ctrl+y} & 粘贴最近删除的内容 & 与上四行配合移动文本 \\
+\texttt{Ctrl+t} & 交换两个字符 & 修正手误，不必重输 \\
+\texttt{Ctrl+l} & 清屏 & 输出太乱时 \\
+\bottomrule
+\end{booktable}
+
+两个键位与前文的 \texttt{Ctrl+c}、\texttt{Ctrl+r} 同属这套体系：\texttt{Ctrl+c} 放弃整行，\texttt{Ctrl+r} 反向搜索历史。删除与粘贴配合可以搬运文本：\texttt{Ctrl+u} 删掉光标前半段，按 \texttt{Ctrl+e} 移到行尾，再按 \texttt{Ctrl+y} 贴回。
+
+表中有两个键在 Emacs 里含义不同：\texttt{Ctrl+u} 是前缀参数，\texttt{Ctrl+w} 是剪切选区。其余键位两边一致。
+
+\begin{notebox}[Ctrl+s 被终端占用]
+readline 里 \texttt{Ctrl+s} 是向前搜索历史，与 \texttt{Ctrl+r} 相对。终端驱动的流控（\texttt{IXON}）会截住 \texttt{Ctrl+s} 用于暂停输出，按下后屏幕不再刷新，看起来像卡死。按 \texttt{Ctrl+q} 恢复。要长期启用，把 \texttt{stty -ixon} 写进 shell 的启动文件。
+\end{notebox}
+
+\subsection{用编辑器写长命令}
+
+一行命令写到一半，结构复杂到不便在提示符里改时，按 \texttt{Ctrl+x} \texttt{Ctrl+e}。readline 会把当前行交给 \texttt{\$EDITOR} 指定的编辑器，保存退出后命令立即执行。
+
+\begin{shellsession}
+$ echo "${VISUAL:-（未设置）}" "${EDITOR:-（未设置）}"
+（未设置） （未设置）
+$ export EDITOR=emacs
+\end{shellsession}
+
+readline 先取 \texttt{VISUAL}，再取 \texttt{EDITOR}；两者都未设置时用 \texttt{emacs}。变量必须导出，仅赋值不会被 readline 读到。设为 \texttt{emacs} 之后，\texttt{Ctrl+x} \texttt{Ctrl+e} 会打开 Emacs；终端里启动 Emacs 的方法在第\ref{ch:editor-workflow}章说明。
+
+\subsection{inputrc}
+
+readline 的行为由 \texttt{\textasciitilde/.inputrc} 调整，不必改 shell 脚本。
+
+\begin{textcode}
+set editing-mode emacs
+set completion-ignore-case on
+set bell-style none
+
+$if Bash
+  "\C-x\C-r": re-read-init-file
+$endif
+\end{textcode}
+
+三行常规设置：保持 Emacs 键位、补全忽略大小写、关闭提示音。最后一段只在 bash 中生效，把 \texttt{Ctrl+x} \texttt{Ctrl+r} 绑成重新读取本文件，改完不必退出 shell。
+
+这份文件同样可以交给 Home Manager 生成，写法见第\ref{ch:editor-workflow}章。
+
 \section{中断、挂起与退出}
 
 三个按键的含义不同。
@@ -210,6 +271,7 @@ fish & 默认开启语法高亮与自动建议 & 不打算配置交互环境 \\
   \item 统计 \texttt{PATH} 中包含几个目录。可将 \texttt{echo \$PATH} 的输出交给 \texttt{tr ':' '\textbackslash n'} 后计数。
   \item 制造三类报错：命令名拼错、访问无权限文件、打开不存在的文件，把三条报错原文抄入笔记。
   \item 分别用 \texttt{type} 与 \texttt{command -v} 查询同一命令，比较两者输出的差异。
+  \item 输入一条长命令，用 \texttt{Ctrl+a}、\texttt{Ctrl+k}、\texttt{Ctrl+y} 把它拆成两半再拼回去。
 \end{enumerate}
 
 \begin{checkpoint}
@@ -218,6 +280,7 @@ fish & 默认开启语法高亮与自动建议 & 不打算配置交互环境 \\
   \item 说出提示符中用户名、主机名、当前目录与权限标记的位置；
   \item 将一条命令拆分为命令、选项、参数三部分；
   \item 使用 Tab、命令历史与 \texttt{Ctrl+R} 减少输入量；
+  \item 用 readline 键位在行内移动、删除与粘贴，知道这套键位与 Emacs 同源；
   \item 用 \texttt{Ctrl+C}、\texttt{Ctrl+Z}、\texttt{Ctrl+D} 控制前台程序；
   \item 判断四类常见报错的原因；
   \item 解释 \texttt{PATH} 的作用，说明“命令找不到”的常见原因。

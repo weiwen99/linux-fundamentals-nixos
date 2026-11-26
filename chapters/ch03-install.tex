@@ -142,7 +142,7 @@ $ sudo mkfs.ext4 /dev/mapper/cryptroot
 $ sudo mount /dev/mapper/cryptroot /mnt
 \end{shellsession}
 
-生成的 \texttt{hardware-configuration.nix} 会包含解密配置；若没有，需要手工补 \texttt{boot.initrd.luks.devices}。
+生成的 \texttt{hardware-\allowbreak{}configuration.nix} 会包含解密配置；若没有，需要手工补 \texttt{boot.initrd.\allowbreak{}luks.\allowbreak{}devices}。
 
 \texttt{mkfs} 意为“建立文件系统”。刚完成分区的磁盘仅是一段空闲区域，\texttt{mkfs.ext4} 在其上写入目录结构、空闲块表等元数据，操作系统才能存放文件。EFI 分区必须使用 FAT32，这是固件的要求。
 
@@ -280,7 +280,7 @@ boot.kernelModules = [ "kvm-intel" ];
 boot.kernelParams = [ "mem_sleep_default=deep" ];
 \end{nixcode}
 
-\texttt{fwupd} 用于固件更新，执行 \texttt{fwupdmgr get-updates} 查看可更新的固件。\texttt{mem\_sleep\_default=deep} 让部分机型进入真正的休眠而不是待机耗电状态。
+\texttt{fwupd} 用于固件更新，执行 \texttt{fwupdmgr get-updates} 查看可更新的固件。\texttt{mem\_sleep\_\allowbreak{}default=deep} 让部分机型进入真正的休眠而不是待机耗电状态。
 
 \begin{shellsession}
 $ sudo nixos-generate-config --show-hardware-config > /tmp/hw.nix
